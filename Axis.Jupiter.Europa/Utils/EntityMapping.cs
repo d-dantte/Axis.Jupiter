@@ -30,21 +30,13 @@ namespace Axis.Jupiter.Europa.Utils
         /// <summary>
         /// The table(s) that the entity is mapped to
         /// </summary>
-        public List<TableMapping> TableMappings { get; set; }
-        public TableMapping table
-        {
-            get { return TableMappings.FirstOrDefault(); }
-        }
+        internal List<TableMapping> _tableMappings { get; private set; } = new List<TableMapping>();
+        public IEnumerable<TableMapping> TableMappings => _tableMappings.ToArray();
 
-        public IEnumerable<PropertyInfo> properties
-        {
-            get
-            {
-                var tm = this.TableMappings.FirstOrDefault();
-                if (tm == null) return new List<PropertyInfo>();
-                else return tm.PropertyMappings.Select(pm => pm.Property);
-            }
-        }
+        public TableMapping Table => TableMappings.FirstOrDefault();
+
+        public IEnumerable<PropertyInfo> Properties
+            => TableMappings.FirstOrDefault()?.PropertyMappings.Select(_pm => _pm.Property) ?? new PropertyInfo[0];
     }
 
     /// <summary>
@@ -55,12 +47,14 @@ namespace Axis.Jupiter.Europa.Utils
         /// <summary>
         /// The name of the table the entity is mapped to
         /// </summary>
-        public string TableName { get; set; }
+        public string TableName { get; internal set; }
 
         /// <summary>
         /// Details of the property-to-column mapping
         /// </summary>
-        public List<PropertyMapping> PropertyMappings { get; set; }
+        internal List<PropertyMapping> _propertyMappings { get; private set; } = new List<PropertyMapping>();
+
+        public IEnumerable<PropertyMapping> PropertyMappings => _propertyMappings.ToArray();
     }
 
     /// <summary>
@@ -71,12 +65,12 @@ namespace Axis.Jupiter.Europa.Utils
         /// <summary>
         /// The property from the entity type
         /// </summary>
-        public PropertyInfo Property { get; set; }
+        public PropertyInfo Property { get; internal set; }
 
         /// <summary>
         /// The column that property is mapped to
         /// </summary>
-        public string ColumnName { get; set; }
+        public string ColumnName { get; internal set; }
     }
 
     /// <summary>
@@ -89,7 +83,7 @@ namespace Axis.Jupiter.Europa.Utils
         /// </summary>
         public IEnumerable<TypeMapping> TypeMappings { get; private set; }
 
-        public TypeMapping typeMetadata<Entity>()// where Entity : class 
+        public TypeMapping TypeMetadata<Entity>()// where Entity : class 
         {
             var et = typeof(Entity);
             return TypeMappings.FirstOrDefault(tm => tm.EntityType.Equals(et));
@@ -127,7 +121,7 @@ namespace Axis.Jupiter.Europa.Utils
             // Loop thru each entity type in the model
             foreach (var set in conceptualContainer.BaseEntitySets.OfType<EntitySet>())
             {
-                var typeMapping = new TypeMapping { TableMappings = new List<TableMapping>() };
+                var typeMapping = new TypeMapping();
                 tmlist.Add(typeMapping);
 
                 var ocmap = ocCollection.FirstOrDefault(oc => oc.conceptualIdentity() == set.ElementType.FullName);
@@ -153,11 +147,8 @@ namespace Axis.Jupiter.Europa.Utils
 
                 foreach (var mapping in mappingFragments)
                 {
-                    var tableMapping = new TableMapping
-                    {
-                        PropertyMappings = new List<PropertyMapping>()
-                    };
-                    typeMapping.TableMappings.Add(tableMapping);
+                    var tableMapping = new TableMapping();
+                    typeMapping._tableMappings.Add(tableMapping);
 
                     // Find the table that this fragment maps to
                     var storeset = mapping.Attribute("StoreEntitySet").Value;
@@ -177,7 +168,7 @@ namespace Axis.Jupiter.Europa.Utils
                         var propertyName = propertyMapping.Attribute("Name").Value;
                         var columnName = propertyMapping.Attribute("ColumnName").Value;
 
-                        tableMapping.PropertyMappings.Add(new PropertyMapping
+                        tableMapping._propertyMappings.Add(new PropertyMapping
                         {
                             Property = typeMapping.EntityType.GetProperty(propertyName),
                             ColumnName = columnName

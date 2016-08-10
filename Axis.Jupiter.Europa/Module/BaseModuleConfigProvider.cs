@@ -18,11 +18,13 @@ namespace Axis.Jupiter.Europa.Module
         private Dictionary<Type, List<dynamic>> _entitySeeders { get; set; } = new Dictionary<Type, List<dynamic>>();
         private List<Action<IDataContext>> _contextActions { get; set; } = new List<Action<IDataContext>>();
         private Dictionary<Type, dynamic> _storeQueryGenerators { get; set; } = new Dictionary<Type, dynamic>();
+        private Dictionary<string, dynamic> _contextQueryGenerators { get; set; } = new Dictionary<string, dynamic>();
         private MethodInfo StoreMethod { get; set; } = typeof(EuropaContext).GetMethod(nameof(EuropaContext.Store));
 
         public abstract string ModuleName { get; }
 
-        public IEnumerable<KeyValuePair<Type, dynamic>> QueryGenerators => _storeQueryGenerators.ToArray();
+        public IEnumerable<KeyValuePair<Type, dynamic>> StoreQueryGenerators => _storeQueryGenerators.ToArray();
+        public IEnumerable<KeyValuePair<string, dynamic>> ContextQueryGenerators => _contextQueryGenerators.ToArray();
         #endregion
 
         #region Methods
@@ -38,15 +40,18 @@ namespace Axis.Jupiter.Europa.Module
         public IModuleConfigProvider UsingContext(Action<IDataContext> contextAction)
             => this.UsingValue(v => _contextActions.Add(contextAction.ThrowIfNull()));
 
-        public IModuleConfigProvider WithQueryGenerator<Entity>(Func<IDataContext, IQueryable<Entity>> generator)
+        public IModuleConfigProvider WithStoreQueryGenerator<Entity>(Func<IDataContext, IQueryable<Entity>> generator)
         where Entity : class => this.UsingValue(v => _storeQueryGenerators.Add(typeof(Entity), generator.ThrowIfNull("null generator")));
+
+        public IModuleConfigProvider WithContextQueryGenerator<Entity>(string queryIdentity, Func<IDataContext, IQueryable<Entity>> generator)
+        where Entity : class => this.UsingValue(v => _contextQueryGenerators.Add(queryIdentity, generator.ThrowIfNull("null generator")));
 
         public void ConfigureContext(DbModelBuilder modelBuilder)
             => _entityConfigs.Values.ForAll((cnt, next) => modelBuilder.Configurations.Add(next));
 
         public void SeedContext(EuropaContext context)
         {
-            //run context seeders first
+            //run context actions first
             _contextActions.ForAll((cnt, next) => next.Invoke(context));
 
             //run entity seeders. I will deprecate this feature soonest.

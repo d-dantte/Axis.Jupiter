@@ -8,11 +8,14 @@ namespace Axis.Jupiter
 {
     public interface IDataContext: IObjectFactoryGenerator, IDisposable
     {
-        IObjectStore<Object> Store<Object>() where Object : class;
+        IQueryable<Entity> ContextQuery<Entity>(string queryIdentity) where Entity : class;
+
+        IObjectStore<Entity> Store<Entity>() where Entity : class;
+
         int CommitChanges();
         Task<int> CommitChangesAsync();
 
-        Task BulkInsert<Object>(IEnumerable<Object> objectStream) where Object : class;
+        Task BulkInsert<Entity>(IEnumerable<Entity> objectStream) where Entity : class;
         bool SupportsBulkPersist { get; }
 
         string Name { get; }

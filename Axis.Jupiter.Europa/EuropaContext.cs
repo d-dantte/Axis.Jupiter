@@ -17,9 +17,10 @@ namespace Axis.Jupiter.Europa
 {
     public class EuropaContext: DbContext, IDataContext, IDisposable
     {
-        internal EFMapping ContextMetadata { get; set; }
+        public EFMapping ContextMetadata { get; internal set; }
         private ContextConfiguration ContextConfig { get; set; }
         private Dictionary<Type, dynamic> _queryGenerators { get; set; } = new Dictionary<Type, dynamic>();
+        private Dictionary<string, dynamic> _contextQueries { get; set; } = new Dictionary<string, dynamic>();
 
 
         protected EuropaContext()
@@ -41,11 +42,17 @@ namespace Axis.Jupiter.Europa
         private void Init()
         {
             _bulkContext = new SqlBulkCopy(Database.Connection.ConnectionString);
+            ContextMetadata = new EFMapping(this);
 
-            //load query generators
+            //load store query generators
             ContextConfig.Modules.Values
-                .SelectMany(_m => _m.QueryGenerators)
+                .SelectMany(_m => _m.StoreQueryGenerators)
                 .ForAll((cnt, next) => _queryGenerators.Add(next.Key, next.Value));
+
+            //load context query generators
+            ContextConfig.Modules.Values
+                .SelectMany(_m => _m.ContextQueryGenerators)
+                .ForAll((cnt, next) => _contextQueries.Add(next.Key, next.Value));
         }
 
         internal dynamic QueryGeneratorFor<Entity>() => QueryGeneratorFor(typeof(Entity));
@@ -72,7 +79,7 @@ namespace Axis.Jupiter.Europa
 
             return Task.Run(() =>
             {
-                var tableName = ContextMetadata.typeMetadata<Entity>().table.TableName;
+                var tableName = ContextMetadata.TypeMetadata<Entity>().Table.TableName;
                 _bulkContext.BatchSize = objectStream.Count();
                 _bulkContext.DestinationTableName = tableName;
 
@@ -104,6 +111,9 @@ namespace Axis.Jupiter.Europa
 
         public IObjectStore<Entity> Store<Entity>()
         where Entity : class => new ObjectStore<Entity>(this);
+
+        public IQueryable<Entity> ContextQuery<Entity>(string queryIdentity)
+        where Entity : class => Eval(() => (_contextQueries[queryIdentity] as Func<IDataContext, IQueryable<Entity>>).Invoke(this)) ?? (new Entity[0]).AsQueryable();
 
         protected override void Dispose(bool disposing)
         {
