@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter", "Axis.Jupiter\Axis.Jupiter.csproj", "{0184CFB2-EA0B-4BA1-9ECF-5FCBD7C4D964}"
 EndProject
@@ -40,6 +40,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{0184CFB2-EA0B-4BA1-9ECF-5FCBD7C4D964} = {148C740A-07FF-4593-AD76-1BF111F3F689}
 		{327C01D9-0ABD-4B87-A75B-2AE9C026CFEA} = {2275AA7D-018C-4262-AE95-69040B1773CE}
-		{0082FE01-B3EA-4313-B1E2-745EE85F58E1} = {2275AA7D-018C-4262-AE95-69040B1773CE}
+		{0082FE01-B3EA-4313-B1E2-745EE85F58E1} = {D3C80443-9879-41B1-B9E7-362DF1F7E6F9}
 	EndGlobalSection
 EndGlobal
