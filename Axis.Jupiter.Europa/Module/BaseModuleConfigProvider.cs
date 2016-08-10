@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Data.Entity.ModelConfiguration;
 using System.Data.Entity;
 using System.Reflection;
+using System.Linq;
 
 namespace Axis.Jupiter.Europa.Module
 {
@@ -15,9 +16,13 @@ namespace Axis.Jupiter.Europa.Module
         #region Properties
         private Dictionary<Type, dynamic> _entityConfigs { get; set; } = new Dictionary<Type, dynamic>();
         private Dictionary<Type, List<dynamic>> _entitySeeders { get; set; } = new Dictionary<Type, List<dynamic>>();
-        private List<Action<IDataContext>> _contextSeeders { get; set; } = new List<Action<IDataContext>>();
+        private List<Action<IDataContext>> _contextActions { get; set; } = new List<Action<IDataContext>>();
+        private Dictionary<Type, dynamic> _storeQueryGenerators { get; set; } = new Dictionary<Type, dynamic>();
         private MethodInfo StoreMethod { get; set; } = typeof(EuropaContext).GetMethod(nameof(EuropaContext.Store));
+
         public abstract string ModuleName { get; }
+
+        public IEnumerable<KeyValuePair<Type, dynamic>> QueryGenerators => _storeQueryGenerators.ToArray();
         #endregion
 
         #region Methods
@@ -30,8 +35,11 @@ namespace Axis.Jupiter.Europa.Module
         public IModuleConfigProvider UsingEntitySeed<Entity>(Action<ObjectStore<Entity>> seeder)
         where Entity : class => this.UsingValue(t => _entitySeeders.GetOrAdd(typeof(Entity), _k => new List<dynamic>()).Add(seeder.ThrowIfNull()));
 
-        public IModuleConfigProvider UsingContextSeed(Action<IDataContext> seeder)
-            => this.UsingValue(v => _contextSeeders.Add(seeder.ThrowIfNull()));
+        public IModuleConfigProvider UsingContext(Action<IDataContext> contextAction)
+            => this.UsingValue(v => _contextActions.Add(contextAction.ThrowIfNull()));
+
+        public IModuleConfigProvider WithQueryGenerator<Entity>(Func<IDataContext, IQueryable<Entity>> generator)
+        where Entity : class => this.UsingValue(v => _storeQueryGenerators.Add(typeof(Entity), generator.ThrowIfNull("null generator")));
 
         public void ConfigureContext(DbModelBuilder modelBuilder)
             => _entityConfigs.Values.ForAll((cnt, next) => modelBuilder.Configurations.Add(next));
@@ -39,7 +47,7 @@ namespace Axis.Jupiter.Europa.Module
         public void SeedContext(EuropaContext context)
         {
             //run context seeders first
-            _contextSeeders.ForAll((cnt, next) => next.Invoke(context));
+            _contextActions.ForAll((cnt, next) => next.Invoke(context));
 
             //run entity seeders. I will deprecate this feature soonest.
             _entitySeeders.ForAll((cnt, next) =>

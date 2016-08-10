@@ -27,7 +27,8 @@ namespace Axis.Jupiter.Europa
 
         public IQueryable<Entity> ReadonlyQuery => Set.AsNoTracking();
 
-        public IQueryable<Entity> Query => Set;
+        public IQueryable<Entity> Query
+            => (_context.QueryGeneratorFor<Entity>() as Func<IDataContext, IQueryable<Entity>>)?.Invoke(_context) ?? Set;
 
 
 

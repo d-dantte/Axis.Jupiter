@@ -12,6 +12,8 @@ namespace Axis.Jupiter.Europa.Module
     {
         string ModuleName { get; }
 
+        IEnumerable<KeyValuePair<Type, dynamic>> QueryGenerators { get; }
+
         /// <summary>
         /// Adds a new EntityTypeConfiguratin to the underlying provider's list of configurations for the specified entity type, or replaces the old one.
         /// </summary>

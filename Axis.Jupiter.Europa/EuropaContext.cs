@@ -1,5 +1,6 @@
 ﻿using static Axis.Luna.Extensions.ExceptionExtensions;
 using static Axis.Luna.Extensions.EnumerableExtensions;
+using static Axis.Luna.Extensions.ObjectExtensions;
 
 using Axis.Jupiter.Europa.Utils;
 using System;
@@ -18,6 +19,7 @@ namespace Axis.Jupiter.Europa
     {
         internal EFMapping ContextMetadata { get; set; }
         private ContextConfiguration ContextConfig { get; set; }
+        private Dictionary<Type, dynamic> _queryGenerators { get; set; } = new Dictionary<Type, dynamic>();
 
 
         protected EuropaContext()
@@ -39,7 +41,15 @@ namespace Axis.Jupiter.Europa
         private void Init()
         {
             _bulkContext = new SqlBulkCopy(Database.Connection.ConnectionString);
+
+            //load query generators
+            ContextConfig.Modules.Values
+                .SelectMany(_m => _m.QueryGenerators)
+                .ForAll((cnt, next) => _queryGenerators.Add(next.Key, next.Value));
         }
+
+        internal dynamic QueryGeneratorFor<Entity>() => QueryGeneratorFor(typeof(Entity));
+        internal dynamic QueryGeneratorFor(Type entitytype) => Eval(() => _queryGenerators[entitytype]);
 
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
