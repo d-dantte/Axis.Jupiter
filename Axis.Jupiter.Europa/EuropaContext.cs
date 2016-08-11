@@ -33,6 +33,7 @@ namespace Axis.Jupiter.Europa
             Init();
         }
 
+
         public EuropaContext(ContextConfiguration configuration):base(configuration.ConnectionString)
         {
             ContextConfig = configuration.ThrowIfNull();
@@ -120,8 +121,12 @@ namespace Axis.Jupiter.Europa
         public IObjectStore<Entity> Store<Entity>()
         where Entity : class => new ObjectStore<Entity>(this);
 
-        public IQueryable<Entity> ContextQuery<Entity>(string queryIdentity)
-        where Entity : class => Eval(() => (_contextQueries[queryIdentity] as Func<IDataContext, IQueryable<Entity>>).Invoke(this)) ?? (new Entity[0]).AsQueryable();
+        public IQueryable<Entity> ContextQuery<Entity>(string queryIdentity, params object[] args)
+        where Entity : class
+        {
+            var fnc = Eval(() => (_contextQueries[queryIdentity] as Func<IDataContext, object[], IQueryable<Entity>>));
+            return fnc?.Invoke(this, args ?? new object[0]) ?? (new Entity[0]).AsQueryable();
+        }
 
         protected override void Dispose(bool disposing)
         {

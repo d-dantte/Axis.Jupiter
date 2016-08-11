@@ -8,7 +8,7 @@ namespace Axis.Jupiter
 {
     public interface IDataContext: IObjectFactoryGenerator, IDisposable
     {
-        IQueryable<Entity> ContextQuery<Entity>(string queryIdentity) where Entity : class;
+        IQueryable<Entity> ContextQuery<Entity>(string queryIdentity, params object[] args) where Entity : class;
 
         IObjectStore<Entity> Store<Entity>() where Entity : class;
 

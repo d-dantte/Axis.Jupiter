@@ -43,7 +43,7 @@ namespace Axis.Jupiter.Europa.Module
         public IModuleConfigProvider WithStoreQueryGenerator<Entity>(Func<IDataContext, IQueryable<Entity>> generator)
         where Entity : class => this.UsingValue(v => _storeQueryGenerators.Add(typeof(Entity), generator.ThrowIfNull("null generator")));
 
-        public IModuleConfigProvider WithContextQueryGenerator<Entity>(string queryIdentity, Func<IDataContext, IQueryable<Entity>> generator)
+        public IModuleConfigProvider WithContextQueryGenerator<Entity>(string queryIdentity, Func<IDataContext, object[], IQueryable<Entity>> generator)
         where Entity : class => this.UsingValue(v => _contextQueryGenerators.Add(queryIdentity, generator.ThrowIfNull("null generator")));
 
         public void ConfigureContext(DbModelBuilder modelBuilder)
