@@ -49,7 +49,7 @@ namespace Axis.Jupiter.Europa.Module
         public void ConfigureContext(DbModelBuilder modelBuilder)
             => _entityConfigs.Values.ForAll((cnt, next) => modelBuilder.Configurations.Add(next));
 
-        public void SeedContext(EuropaContext context)
+        public void InitializeContext(EuropaContext context)
         {
             //run context actions first
             _contextActions.ForAll((cnt, next) => next.Invoke(context));

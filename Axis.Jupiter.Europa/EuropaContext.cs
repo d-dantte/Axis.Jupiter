@@ -42,7 +42,6 @@ namespace Axis.Jupiter.Europa
         private void Init()
         {
             _bulkContext = new SqlBulkCopy(Database.Connection.ConnectionString);
-            ContextMetadata = new EFMapping(this);
 
             //load store query generators
             ContextConfig.Modules.Values
@@ -61,9 +60,18 @@ namespace Axis.Jupiter.Europa
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            //set db initializer - and any seeding logic
-            Action<EuropaContext> grandSeeder = cxt => ContextConfig?.Modules.Values.ForAll((cnt, next) => next.SeedContext(this));
-            Database.SetInitializer(new RootDbInitializer<EuropaContext>(ContextConfig?.DatabaseInitializer, grandSeeder));
+            base.OnModelCreating(modelBuilder);
+
+            //set db initializer - and any custom-initialization logic
+            Action<EuropaContext> customInitializer = cxt =>
+            {
+                //at this point, the Context-Model has been built, so...
+                this.ContextMetadata = new EFMapping(this);
+
+                ContextConfig?.Modules.Values.ForAll((cnt, next) => next.InitializeContext(this));
+            };
+
+            Database.SetInitializer(new RootDbInitializer<EuropaContext>(ContextConfig?.DatabaseInitializer, customInitializer));
 
             //provide entity configurations
             ContextConfig?.Modules.Values.ForAll((cnt, next) => next.ConfigureContext(modelBuilder));     

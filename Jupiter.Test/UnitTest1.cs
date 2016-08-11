@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Data.Entity;
 
 namespace Jupiter.Test
 {
@@ -17,6 +18,26 @@ namespace Jupiter.Test
             dynamic dynAction = action;
             dynAction.Invoke(60);
             dynAction.Invoke(v);
+        }
+
+        [TestMethod]
+        public void TestMethod2()
+        {
+
+        }
+    }
+
+    public class Context: DbContext
+    {
+        public Context()
+        {
+        }
+
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            Database.SetInitializer(new DropCreateDatabaseAlways<Context>());
+
+            base.OnModelCreating(modelBuilder);
         }
     }
 }
