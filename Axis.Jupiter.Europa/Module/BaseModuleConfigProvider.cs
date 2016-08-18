@@ -29,6 +29,8 @@ namespace Axis.Jupiter.Europa.Module
 
         #region Methods
 
+        public IEnumerable<Type> ConfiguredTypes() => _entityConfigs.Keys;
+
         public IModuleConfigProvider UsingConfiguration<Entity>(EntityTypeConfiguration<Entity> configuration)
         where Entity : class => this.UsingValue(t => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
         public IModuleConfigProvider UsingConfiguration<Entity>(ComplexTypeConfiguration<Entity> configuration)

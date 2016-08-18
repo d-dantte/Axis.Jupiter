@@ -1,0 +1,5 @@
+
+2016/08/13 =====================================================================================================================
+
+1. Add the ability to seed the context into the IModuleConfigProvider interface (a.k.a Entity Seeding). This means that a 
+   IObjectStore, not a IDataContext, is passed into the function that will do the seeding.

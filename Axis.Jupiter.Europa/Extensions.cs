@@ -1,9 +1,9 @@
 ﻿using Axis.Jupiter.Europa.Mappings;
 using Axis.Luna.Extensions;
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity;
 using System.Data.Entity.Infrastructure.Annotations;
 using System.Data.Entity.ModelConfiguration;
 using System.Data.Entity.ModelConfiguration.Configuration;
@@ -33,6 +33,7 @@ namespace Axis.Jupiter.Europa
         public static bool IsComplexMap(this Type t)
             => GetBaseComplexMap(t).Pipe(bt => bt != null && bt != t && !t.IsInterface && !t.IsAbstract && !t.IsGenericType);
 
+        
 
         #region private stuff
         public static Type BaseMapType(this Type t) => GetBaseMap(t)?.GetGenericArguments().First();

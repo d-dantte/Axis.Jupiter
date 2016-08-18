@@ -1,6 +1,7 @@
 ﻿using static Axis.Luna.Extensions.ExceptionExtensions;
 using static Axis.Luna.Extensions.EnumerableExtensions;
 using static Axis.Luna.Extensions.ObjectExtensions;
+using static Axis.Luna.Extensions.TypeExtensions;
 
 using Axis.Jupiter.Europa.Utils;
 using System;
@@ -23,6 +24,15 @@ namespace Axis.Jupiter.Europa
         private Dictionary<string, dynamic> _contextQueries { get; set; } = new Dictionary<string, dynamic>();
 
 
+        #region Init
+        private static void CustomInitialiation(EuropaContext cxt)
+        {
+            //at this point, the Context-Model has been built, so...
+            cxt.ContextMetadata = new EFMapping(cxt);
+
+            cxt.ContextConfig?.Modules.Values.ForAll((cnt, next) => next.InitializeContext(cxt));
+        }
+
         protected EuropaContext()
         {
             Init();
@@ -34,7 +44,8 @@ namespace Axis.Jupiter.Europa
         }
 
 
-        public EuropaContext(ContextConfiguration configuration):base(configuration.ConnectionString)
+        public EuropaContext(ContextConfiguration configuration)
+        : base(configuration.UsingValue(_c => Database.SetInitializer(new RootDbInitializer<EuropaContext>(_c.DatabaseInitializer, (Action<EuropaContext>)CustomInitialiation))).ConnectionString)
         {
             ContextConfig = configuration.ThrowIfNull();
             Init();
@@ -42,7 +53,10 @@ namespace Axis.Jupiter.Europa
 
         private void Init()
         {
-            _bulkContext = new SqlBulkCopy(Database.Connection.ConnectionString);
+            _bulkContext = new SqlBulkCopy(Database.Connection.ConnectionString, ContextConfig.BulkCopyOptions);
+
+            //configure EF. Note that only configuration actions should be carried out here.
+            ContextConfig.EFContextConfiguration?.Invoke(this.Configuration);
 
             //load store query generators
             ContextConfig.Modules.Values
@@ -55,6 +69,8 @@ namespace Axis.Jupiter.Europa
                 .ForAll((cnt, next) => _contextQueries.Add(next.Key, next.Value));
         }
 
+        #endregion
+
         internal dynamic QueryGeneratorFor<Entity>() => QueryGeneratorFor(typeof(Entity));
         internal dynamic QueryGeneratorFor(Type entitytype) => Eval(() => _queryGenerators[entitytype]);
 
@@ -62,17 +78,6 @@ namespace Axis.Jupiter.Europa
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
-            //set db initializer - and any custom-initialization logic
-            Action<EuropaContext> customInitializer = cxt =>
-            {
-                //at this point, the Context-Model has been built, so...
-                this.ContextMetadata = new EFMapping(this);
-
-                ContextConfig?.Modules.Values.ForAll((cnt, next) => next.InitializeContext(this));
-            };
-
-            Database.SetInitializer(new RootDbInitializer<EuropaContext>(ContextConfig?.DatabaseInitializer, customInitializer));
 
             //provide entity configurations
             ContextConfig?.Modules.Values.ForAll((cnt, next) => next.ConfigureContext(modelBuilder));     
@@ -84,11 +89,34 @@ namespace Axis.Jupiter.Europa
         private SqlBulkCopy _bulkContext = null;
         public Task BulkInsert<Entity>(IEnumerable<Entity> objectStream) where Entity : class
         {
-            ContextMetadata = ContextMetadata ?? new EFMapping(this);
+            //ensure the contextmetadata has been set
+            if(ContextMetadata == null)
+            {
+                //equivalent to "this.Store<Entity>().Query.FirstOrDefault();"
+                //get any of the entities
+                var anyEntity = ContextConfig.ConfiguredEntityTypes().First();
+                var _storeMethod = typeof(IDataContext).GetMethod(nameof(IDataContext.Store)).MakeGenericMethod(anyEntity);
+                var _storeObject = _storeMethod.Invoke(this, new object[0]);
+
+                _storeObject.GetType()
+                    .GetMethod(nameof(IObjectFactory<object>.NewObject))
+                    .Invoke(_storeObject, new object[0]);
+
+                //typeof(Enumerable)
+                //    .GetMethods()
+                //    .Where(_m => _m.Name == nameof(Enumerable.FirstOrDefault))
+                //    .Where(_m => _m.GetParameters().Length == 1)
+                //    .First()
+                //    .MakeGenericMethod(anyEntity)
+                //    .Invoke(null, new object[] { _queryObject });
+
+                //Database.Initialize(false); //<-- this doesnt use my custom initializer
+            }
 
             return Task.Run(() =>
             {
                 var tableName = ContextMetadata.TypeMetadata<Entity>().Table.TableName;
+                //var tableName = this.TypeMetadata<Entity>().TableName;
                 _bulkContext.BatchSize = objectStream.Count();
                 _bulkContext.DestinationTableName = tableName;
 

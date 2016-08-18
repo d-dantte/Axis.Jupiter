@@ -31,6 +31,8 @@ namespace Axis.Jupiter.Europa.Module
         /// <returns></returns>
         IModuleConfigProvider UsingEntitySeed<Entity>(Action<ObjectStore<Entity>> seeder) where Entity: class;
 
+        IEnumerable<Type> ConfiguredTypes();
+
         void ConfigureContext(DbModelBuilder modelBuilder);
         void InitializeContext(EuropaContext context);
     }

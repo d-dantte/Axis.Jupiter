@@ -4,16 +4,16 @@ using System.Data.Entity;
 
 namespace Axis.Jupiter.Europa
 {
-    internal class RootDbInitializer<Context>: IDatabaseInitializer<Context>
+    public class RootDbInitializer<Context>: IDatabaseInitializer<Context>
     where Context : EuropaContext
     {
         internal IDatabaseInitializer<Context> Initializer { get; private set; }
-        private Action<Context> _Seeder { get; set; }
+        private Action<Context> _aggregatedAction { get; set; }
 
-        internal RootDbInitializer(IDatabaseInitializer<Context> initializer, Action<Context> seeder)
+        internal RootDbInitializer(IDatabaseInitializer<Context> initializer, Action<Context> aggregatedContextAction)
         {
             Initializer = initializer;
-            _Seeder = seeder;
+            _aggregatedAction = aggregatedContextAction;
         }
 
         public void InitializeDatabase(Context context)
@@ -22,7 +22,7 @@ namespace Axis.Jupiter.Europa
             Initializer?.InitializeDatabase(context);
 
             //seed the db
-            _Seeder?.Invoke(context);
+            _aggregatedAction?.Invoke(context);
             context.SaveChanges();
         }
     }
