@@ -101,16 +101,8 @@ namespace Axis.Jupiter.Europa
                 _storeObject.GetType()
                     .GetMethod(nameof(IObjectFactory<object>.NewObject))
                     .Invoke(_storeObject, new object[0]);
-
-                //typeof(Enumerable)
-                //    .GetMethods()
-                //    .Where(_m => _m.Name == nameof(Enumerable.FirstOrDefault))
-                //    .Where(_m => _m.GetParameters().Length == 1)
-                //    .First()
-                //    .MakeGenericMethod(anyEntity)
-                //    .Invoke(null, new object[] { _queryObject });
-
-                //Database.Initialize(false); //<-- this doesnt use my custom initializer
+                
+                //Database.Initialize(false); //<-- for some reason, this doesnt call the RootInitializer(...)
             }
 
             return Task.Run(() =>
