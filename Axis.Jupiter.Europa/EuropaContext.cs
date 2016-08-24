@@ -61,7 +61,6 @@ namespace Axis.Jupiter.Europa
         internal dynamic QueryGeneratorFor<Entity>() => QueryGeneratorFor(typeof(Entity));
         internal dynamic QueryGeneratorFor(Type entitytype) => Eval(() => _queryGenerators[entitytype]);
 
-
         #region IDataContext
 
         public Task BulkInsert<Entity>(IEnumerable<Entity> objectStream)
@@ -114,7 +113,7 @@ namespace Axis.Jupiter.Europa
                             });
 
                             columnsAreMapped = true;
-                            table.Rows.Add(values.ToArray()); //<-- why is this working???
+                            table.Rows.Add(values.ToArray());
                         }
 
                         _bcxt.WriteToServer(table);
