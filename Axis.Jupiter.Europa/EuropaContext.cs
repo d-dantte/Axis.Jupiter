@@ -13,60 +13,47 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using Axis.Jupiter.Europa;
+using System.Reflection;
 
 namespace Axis.Jupiter.Europa
 {
-    public class EuropaContext: DbContext, IDataContext, IDisposable
+    public class EuropaContext : DbContext, IDataContext, IDisposable
     {
-        public EFMapping ContextMetadata { get; internal set; }
-        private ContextConfiguration ContextConfig { get; set; }
+        #region Properties
+        private ContextConfiguration<EuropaContext> ContextConfig { get; set; }
         private Dictionary<Type, dynamic> _queryGenerators { get; set; } = new Dictionary<Type, dynamic>();
         private Dictionary<string, dynamic> _contextQueries { get; set; } = new Dictionary<string, dynamic>();
-
+        private Dictionary<Type, SqlBulkCopy> _bulkCopyContextMap = new Dictionary<Type, SqlBulkCopy>();
+        #endregion
 
         #region Init
-        private static void CustomInitialiation(EuropaContext cxt)
+
+        public EuropaContext(ContextConfiguration<EuropaContext> configuration)
+        : base(configuration.ConnectionString, configuration.Compile())
         {
-            //at this point, the Context-Model has been built, so...
-            cxt.ContextMetadata = new EFMapping(cxt);
-
-            cxt.ContextConfig?.Modules.Values.ForAll((cnt, next) => next.InitializeContext(cxt));
-        }
-
-        protected EuropaContext()
-        {
-            Init();
-        }
-
-        protected EuropaContext(string cstring): base(cstring)
-        {
-            Init();
-        }
-
-
-        public EuropaContext(ContextConfiguration configuration)
-        : base(configuration.UsingValue(_c => Database.SetInitializer(new RootDbInitializer<EuropaContext>(_c.DatabaseInitializer, (Action<EuropaContext>)CustomInitialiation))).ConnectionString)
-        {
-            ContextConfig = configuration.ThrowIfNull();
+            ContextConfig = configuration;
             Init();
         }
 
         private void Init()
         {
-            _bulkContext = new SqlBulkCopy(Database.Connection.ConnectionString, ContextConfig.BulkCopyOptions);
-
             //configure EF. Note that only configuration actions should be carried out here.
             ContextConfig.EFContextConfiguration?.Invoke(this.Configuration);
 
             //load store query generators
-            ContextConfig.Modules.Values
+            ContextConfig.ConfiguredModules
                 .SelectMany(_m => _m.StoreQueryGenerators)
                 .ForAll((cnt, next) => _queryGenerators.Add(next.Key, next.Value));
 
             //load context query generators
-            ContextConfig.Modules.Values
+            ContextConfig.ConfiguredModules
                 .SelectMany(_m => _m.ContextQueryGenerators)
                 .ForAll((cnt, next) => _contextQueries.Add(next.Key, next.Value));
+            
+            //initialize the database if necessary
+            new RootDbInitializer<EuropaContext>(ContextConfig.DatabaseInitializer ?? new NullDatabaseInitializer<EuropaContext>(), 
+                                                 cxt => cxt.ContextConfig.ConfiguredModules.ForAll((cnt, next) => next.InitializeContext(cxt)))
+                .InitializeDatabase(this);
         }
 
         #endregion
@@ -75,68 +62,72 @@ namespace Axis.Jupiter.Europa
         internal dynamic QueryGeneratorFor(Type entitytype) => Eval(() => _queryGenerators[entitytype]);
 
 
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            //provide entity configurations
-            ContextConfig?.Modules.Values.ForAll((cnt, next) => next.ConfigureContext(modelBuilder));     
-        }
-
-
         #region IDataContext
 
-        private SqlBulkCopy _bulkContext = null;
-        public Task BulkInsert<Entity>(IEnumerable<Entity> objectStream) where Entity : class
+        public Task BulkInsert<Entity>(IEnumerable<Entity> objectStream)
+        where Entity : class => Task.Run(() =>
         {
-            //ensure the contextmetadata has been set
-            if(ContextMetadata == null)
-            {
-                //equivalent to "this.Store<Entity>().Query.FirstOrDefault();"
-                //get any of the entities
-                var anyEntity = ContextConfig.ConfiguredEntityTypes().First();
-                var _storeMethod = typeof(IDataContext).GetMethod(nameof(IDataContext.Store)).MakeGenericMethod(anyEntity);
-                var _storeObject = _storeMethod.Invoke(this, new object[0]);
-
-                _storeObject.GetType()
-                    .GetMethod(nameof(IObjectFactory<object>.NewObject))
-                    .Invoke(_storeObject, new object[0]);
-                
-                //Database.Initialize(false); //<-- for some reason, this doesnt call the RootInitializer(...)
-            }
-
-            return Task.Run(() =>
-            {
-                var tableName = ContextMetadata.TypeMetadata<Entity>().Table.TableName;
-                //var tableName = this.TypeMetadata<Entity>().TableName;
-                _bulkContext.BatchSize = objectStream.Count();
-                _bulkContext.DestinationTableName = tableName;
-
-                var table = new DataTable();
-                var props = TypeDescriptor.GetProperties(typeof(Entity))
-                    //Dirty hack to make sure we only have system data types 
-                    //i.e. filter out the relationships/collections
-                                          .Cast<PropertyDescriptor>()
-                                          .Where(propertyInfo => propertyInfo.PropertyType.Namespace.Equals("System"))
-                                          .ToArray();
-
-                foreach (var propertyInfo in props)
+            typeof(Entity).GetProperties()
+                .Select(_propMap => new
                 {
-                    _bulkContext.ColumnMappings.Add(propertyInfo.Name, propertyInfo.Name);
-                    table.Columns.Add(propertyInfo.Name, Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType);
-                }
-
-                var values = new object[props.Length];
-                foreach (var item in objectStream)
+                    Property = _propMap,
+                    EFModel = ContextConfig.EFMappings.MappingFor(_propMap.DeclaringType),
+                    PropertyMap = ContextConfig.EFMappings.MappingFor(_propMap.DeclaringType).Properties.First(_p => PropertiesAreEquivalent(_p.ClrProperty, _propMap))
+                })
+                .GroupBy(_pmap => _pmap.EFModel.MappedTable)
+                .ForAll((_cnt, _tmap) =>
                 {
-                    for (var i = 0; i < values.Length; i++) values[i] = props[i].GetValue(item);
+                    var tmapar = _tmap.ToArray();
 
-                    table.Rows.Add(values);
-                }
+                    //get or generate the bulk copy context
+                    var _bcxt = _bulkCopyContextMap.GetOrAdd(typeof(Entity), _t =>
+                    {
+                        var bc = new SqlBulkCopy(ContextConfig.ConnectionString, ContextConfig.BulkCopyOptions);
+                        bc.DestinationTableName = _tmap.Key;
 
-                _bulkContext.WriteToServer(table);
-            });
-        }
+                        foreach (var _prop in tmapar)
+                        {
+                            var prop = _prop.PropertyMap;
+                            if (prop.Key != PropertyModel.KeyMode.StoreGenerated) bc.ColumnMappings.Add(prop.MappedProperty, prop.MappedProperty);
+                        }
+                        return bc;
+                    });
+
+
+                    var table = new DataTable();
+                    var columnsAreMapped = false;
+                    var tasks = new List<Task>();
+
+                    _bcxt.BatchSize = objectStream.Count();
+                    tasks.Add(Task.Run(() =>
+                    {
+                        foreach (var item in objectStream)
+                        {
+                            var values = new List<object>();
+                            tmapar.Where(_prop => _prop.PropertyMap.Key != PropertyModel.KeyMode.StoreGenerated).ForAll((i, _prop) =>
+                            {
+                                var prop = _prop.PropertyMap;
+                                if (!columnsAreMapped)
+                                    table.Columns.Add(prop.MappedProperty, Nullable.GetUnderlyingType(prop.ClrProperty.PropertyType) ?? prop.ClrProperty.PropertyType);
+
+                                values.Add(prop.ClrProperty.GetValue(item)); //<-- i should find a way to optimaize this, proly by caching a delegate to the getter function
+                            });
+
+                            columnsAreMapped = true;
+                            table.Rows.Add(values.ToArray()); //<-- why is this working???
+                        }
+
+                        _bcxt.WriteToServer(table);
+                    }));
+
+                    Task.WaitAll(tasks.ToArray());
+                });
+        });
+
+        private bool PropertiesAreEquivalent(PropertyInfo first, PropertyInfo second)
+            => first.Name == second.Name &&
+               first.PropertyType == second.PropertyType &&
+               first.DeclaringType == second.DeclaringType;
 
         public IObjectStore<Entity> Store<Entity>()
         where Entity : class => new ObjectStore<Entity>(this);
@@ -153,12 +144,7 @@ namespace Axis.Jupiter.Europa
             //dispose internal resources
             if (disposing)
             {
-                try
-                {
-                    this._bulkContext.Close();
-                }
-                catch
-                { }
+                this._bulkCopyContextMap.Values.ForAll((_cnt, _next) => Eval(() => _next.Close()));
             }
         }
 
@@ -167,8 +153,8 @@ namespace Axis.Jupiter.Europa
         public Task<int> CommitChangesAsync() => this.SaveChangesAsync();
 
         public IObjectFactory<Entity> FactoryFor<Entity>()
-        where Entity: class => Store<Entity>();
-        
+        where Entity : class => Store<Entity>();
+
 
         public bool SupportsBulkPersist => true;
         public string Name => "Axis.Jupitar.Europa";

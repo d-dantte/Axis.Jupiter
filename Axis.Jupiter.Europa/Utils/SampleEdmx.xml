@@ -1,0 +1,238 @@
+﻿<Edmx Version="3.0" xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <Runtime>
+    <ConceptualModels>
+      <Schema Namespace="CodeFirstNamespace" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <ComplexType Name="WebSite" customannotation:ClrType="Sample.Core.Domain.WebSite, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <Property Name="Host" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Page" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+        </ComplexType>
+        <EntityType Name="Course" customannotation:ClrType="Sample.Core.Domain.Course, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" Abstract="true">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="None" />
+          <Property Name="Name" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="OnlineCourse" customannotation:ClrType="Sample.Core.Domain.OnlineCourse, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" BaseType="Self.Course">
+          <Property Name="Url" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="OnsiteCourse" customannotation:ClrType="Sample.Core.Domain.OnsiteCourse, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" BaseType="Self.Course">
+          <Property Name="Venue" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="Person" customannotation:ClrType="Sample.Core.Domain.Person, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="FirstName" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="LastName" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="DateOfBirth" Type="DateTime" Nullable="false" />
+          <NavigationProperty Name="ContactInfo" Relationship="Self.Person_ContactInfo" FromRole="Person_ContactInfo_Source" ToRole="Person_ContactInfo_Target" />
+        </EntityType>
+        <EntityType Name="Contact" customannotation:ClrType="Sample.Core.Domain.Contact, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" />
+          <Property Name="Phone" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Email" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Address" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Web" Type="Self.WebSite" Nullable="false" />
+          <NavigationProperty Name="Owner" Relationship="Self.Person_ContactInfo" FromRole="Person_ContactInfo_Target" ToRole="Person_ContactInfo_Source" />
+        </EntityType>
+        <EntityType Name="Mammal" customannotation:ClrType="Sample.Core.Domain.Mammal, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Weight" Type="Single" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Cat" customannotation:ClrType="Sample.Core.Domain.Cat, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" BaseType="Self.Mammal">
+          <Property Name="Feline" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="Dog" customannotation:ClrType="Sample.Core.Domain.Dog, Sample.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" BaseType="Self.Mammal">
+          <Property Name="Kanine" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <Association Name="Person_ContactInfo">
+          <End Role="Person_ContactInfo_Source" Type="Self.Person" Multiplicity="1" />
+          <End Role="Person_ContactInfo_Target" Type="Self.Contact" Multiplicity="1" />
+          <ReferentialConstraint>
+            <Principal Role="Person_ContactInfo_Source">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="Person_ContactInfo_Target">
+              <PropertyRef Name="Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="CodeFirstContainer" customannotation:UseClrTypes="true">
+          <EntitySet Name="Courses" EntityType="Self.Course" />
+          <EntitySet Name="People" EntityType="Self.Person" />
+          <EntitySet Name="Contacts" EntityType="Self.Contact" />
+          <EntitySet Name="Mammals" EntityType="Self.Mammal" />
+          <AssociationSet Name="Person_ContactInfo" Association="Self.Person_ContactInfo">
+            <End Role="Person_ContactInfo_Source" EntitySet="People" />
+            <End Role="Person_ContactInfo_Target" EntitySet="Contacts" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema>
+    </ConceptualModels>
+    <Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="CodeFirstDatabase" CdmEntityContainer="CodeFirstContainer">
+          <EntitySetMapping Name="Courses">
+            <EntityTypeMapping TypeName="CodeFirstNamespace.OnlineCourse">
+              <MappingFragment StoreEntitySet="OnlineCourse">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="Url" ColumnName="Url" />
+              </MappingFragment>
+            </EntityTypeMapping>
+            <EntityTypeMapping TypeName="CodeFirstNamespace.OnsiteCourse">
+              <MappingFragment StoreEntitySet="OnsiteCourse">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="Venue" ColumnName="Venue" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="People">
+            <EntityTypeMapping TypeName="CodeFirstNamespace.Person">
+              <MappingFragment StoreEntitySet="Person">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="FirstName" ColumnName="FirstName" />
+                <ScalarProperty Name="LastName" ColumnName="ABCD" />
+                <ScalarProperty Name="DateOfBirth" ColumnName="DateOfBirth" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Contacts">
+            <EntityTypeMapping TypeName="CodeFirstNamespace.Contact">
+              <MappingFragment StoreEntitySet="Contact">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Phone" ColumnName="Phone" />
+                <ScalarProperty Name="Email" ColumnName="Email" />
+                <ScalarProperty Name="Address" ColumnName="Address" />
+                <ComplexProperty Name="Web" TypeName="CodeFirstNamespace.WebSite">
+                  <ScalarProperty Name="Host" ColumnName="Web_Host" />
+                  <ScalarProperty Name="Page" ColumnName="Web_Page" />
+                </ComplexProperty>
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Mammals">
+            <EntityTypeMapping TypeName="IsTypeOf(CodeFirstNamespace.Mammal)">
+              <MappingFragment StoreEntitySet="Mammal">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Weight" ColumnName="Weight" />
+              </MappingFragment>
+            </EntityTypeMapping>
+            <EntityTypeMapping TypeName="CodeFirstNamespace.Cat">
+              <MappingFragment StoreEntitySet="Mammal">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Feline" ColumnName="Feline" />
+                <Condition Value="Cat" ColumnName="Type" />
+              </MappingFragment>
+            </EntityTypeMapping>
+            <EntityTypeMapping TypeName="CodeFirstNamespace.Dog">
+              <MappingFragment StoreEntitySet="Mammal">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Kanine" ColumnName="Kanine" />
+                <Condition Value="Dog" ColumnName="Type" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </Mappings>
+    <StorageModels>
+      <Schema Namespace="CodeFirstDatabaseSchema" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="Person">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="FirstName" Type="nvarchar" MaxLength="250" Nullable="true" />
+          <Property Name="ABCD" Type="nvarchar" MaxLength="250" Nullable="true" />
+          <Property Name="DateOfBirth" Type="datetime" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Contact">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" customannotation:Index="{ Name: IX_Id, Order: 0 }" Nullable="false" />
+          <Property Name="Phone" Type="nvarchar" MaxLength="500" Nullable="true" />
+          <Property Name="Email" Type="nvarchar" customannotation:Index="{ Name: IX_ABC_Index, IsUnique: False }" MaxLength="500" Nullable="true" />
+          <Property Name="Address" Type="nvarchar" MaxLength="500" Nullable="true" />
+          <Property Name="Web_Host" Type="nvarchar(max)" Nullable="true" />
+          <Property Name="Web_Page" Type="nvarchar(max)" Nullable="true" />
+        </EntityType>
+        <EntityType Name="Mammal">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Weight" Type="real" Nullable="false" />
+          <Property Name="Feline" Type="nvarchar(max)" Nullable="true" />
+          <Property Name="Kanine" Type="nvarchar(max)" Nullable="true" />
+          <Property Name="Type" Type="nvarchar" MaxLength="128" Nullable="true" />
+        </EntityType>
+        <EntityType Name="OnlineCourse">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" Nullable="false" />
+          <Property Name="Name" Type="nvarchar(max)" Nullable="true" />
+          <Property Name="Url" Type="nvarchar(max)" Nullable="true" />
+        </EntityType>
+        <EntityType Name="OnsiteCourse">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" Nullable="false" />
+          <Property Name="Name" Type="nvarchar(max)" Nullable="true" />
+          <Property Name="Venue" Type="nvarchar(max)" Nullable="true" />
+        </EntityType>
+        <Association Name="Person_ContactInfo">
+          <End Role="Person" Type="Self.Person" Multiplicity="1" />
+          <End Role="Contact" Type="Self.Contact" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="Person">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="Contact">
+              <PropertyRef Name="Id" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="CodeFirstDatabase">
+          <EntitySet Name="Person" EntityType="Self.Person" Schema="dbo" Table="__Person__X" />
+          <EntitySet Name="Contact" EntityType="Self.Contact" Schema="dbo" Table="Contact" />
+          <EntitySet Name="Mammal" EntityType="Self.Mammal" Schema="dbo" Table="Mammal" />
+          <EntitySet Name="OnlineCourse" EntityType="Self.OnlineCourse" Schema="dbo" Table="OnlineCourse" />
+          <EntitySet Name="OnsiteCourse" EntityType="Self.OnsiteCourse" Schema="dbo" Table="OnsiteCourse" />
+          <AssociationSet Name="Person_ContactInfo" Association="Self.Person_ContactInfo">
+            <End Role="Person" EntitySet="Person" />
+            <End Role="Contact" EntitySet="Contact" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema>
+    </StorageModels>
+  </Runtime>
+  <Designer>
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="False" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+        <DesignerProperty Name="ProcessDependentTemplatesOnSave" Value="False" />
+        <DesignerProperty Name="UseLegacyProvider" Value="False" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <Diagrams />
+  </Designer>
+</Edmx>

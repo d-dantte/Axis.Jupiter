@@ -19,20 +19,16 @@ namespace Axis.Jupiter
                                                                        int pageIndex,
                                                                        int pageSize,
                                                                        Expression<Func<Data, OrderKey>> orderExpression)
-        {
-            return new SequencePage<Data>(sequence.OrderBy(orderExpression).Skip(pageSize * pageIndex).Take(pageSize).ToArray(),
-                                          pageIndex,
-                                          sequence.Count());
-        }
+            => new SequencePage<Data>(sequence.OrderBy(orderExpression).Skip(pageSize * pageIndex).Take(pageSize).ToArray(),
+                                      pageIndex,
+                                      sequence.Count());
 
         public static SequencePage<Data> PaginateDescending<Data, OrderKey>(this IQueryable<Data> sequence,
                                                                                  int pageIndex,
                                                                                  int pageSize,
                                                                                  Expression<Func<Data, object>> orderExpression)
-        {
-            return new SequencePage<Data>(sequence.OrderByDescending(orderExpression).Skip(pageSize * pageIndex).Take(pageSize).ToArray(),
-                                          pageIndex,
-                                          sequence.Count());
-        }
+            => new SequencePage<Data>(sequence.OrderByDescending(orderExpression).Skip(pageSize * pageIndex).Take(pageSize).ToArray(),
+                                      pageIndex,
+                                      sequence.Count());
     }
 }

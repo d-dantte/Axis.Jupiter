@@ -17,6 +17,7 @@ namespace Axis.Jupiter.Europa.Module
         private Dictionary<Type, dynamic> _entityConfigs { get; set; } = new Dictionary<Type, dynamic>();
         private Dictionary<Type, List<dynamic>> _entitySeeders { get; set; } = new Dictionary<Type, List<dynamic>>();
         private List<Action<IDataContext>> _contextActions { get; set; } = new List<Action<IDataContext>>();
+        private List<Action<DbModelBuilder>> _modelBuilderActions { get; set; } = new List<Action<DbModelBuilder>>();
         private Dictionary<Type, dynamic> _storeQueryGenerators { get; set; } = new Dictionary<Type, dynamic>();
         private Dictionary<string, dynamic> _contextQueryGenerators { get; set; } = new Dictionary<string, dynamic>();
         private MethodInfo StoreMethod { get; set; } = typeof(EuropaContext).GetMethod(nameof(EuropaContext.Store));
@@ -30,6 +31,9 @@ namespace Axis.Jupiter.Europa.Module
         #region Methods
 
         public IEnumerable<Type> ConfiguredTypes() => _entityConfigs.Keys;
+
+        public IModuleConfigProvider UsingModelBuilder(Action<DbModelBuilder> action)
+            => this.UsingValue(t => _modelBuilderActions.Add(action.ThrowIfNull()));
 
         public IModuleConfigProvider UsingConfiguration<Entity>(EntityTypeConfiguration<Entity> configuration)
         where Entity : class => this.UsingValue(t => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
@@ -49,7 +53,13 @@ namespace Axis.Jupiter.Europa.Module
         where Entity : class => this.UsingValue(v => _contextQueryGenerators.Add(queryIdentity, generator.ThrowIfNull("null generator")));
 
         public void ConfigureContext(DbModelBuilder modelBuilder)
-            => _entityConfigs.Values.ForAll((cnt, next) => modelBuilder.Configurations.Add(next));
+        {
+            //do general configurations
+            _modelBuilderActions.ForEach(_mba => _mba.Invoke(modelBuilder));
+
+            //do entity specific configurations
+            _entityConfigs.Values.ForAll((cnt, next) => modelBuilder.Configurations.Add(next));
+        }
 
         public void InitializeContext(EuropaContext context)
         {

@@ -1,6 +1,9 @@
-﻿using System;
+﻿using Axis.Luna;
+using Axis.Luna.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Data.Entity.Core.Mapping;
 using System.Data.Entity.Core.Metadata.Edm;
 using System.Data.Entity.Infrastructure;
 using System.IO;
@@ -13,190 +16,277 @@ using System.Xml.Linq;
 
 namespace Axis.Jupiter.Europa.Utils
 {
-    /// <summary>
-    /// Represents the mapping of an entitiy type to one or mode tables in the database
-    ///
-    /// A single entity can be mapped to more than one table when 'Entity Splitting' is used
-    /// Entity Splitting involves mapping different properties from the same type to different tables
-    /// See http://msdn.com/data/jj591617#2.7 for more details
-    /// </summary>
-    public class TypeMapping
-    {
-        /// <summary>
-        /// The type of the entity from the model
-        /// </summary>
-        public Type EntityType { get; set; }
+    ///// <summary>
+    ///// Represents the mapping of an entitiy type to one or mode tables in the database
+    /////
+    ///// A single entity can be mapped to more than one table when 'Entity Splitting' is used
+    ///// Entity Splitting involves mapping different properties from the same type to different tables
+    ///// See http://msdn.com/data/jj591617#2.7 for more details
+    ///// </summary>
+    //public class TypeMapping
+    //{
+    //    public TypeMapping()
+    //    { }
 
-        /// <summary>
-        /// The table(s) that the entity is mapped to
-        /// </summary>
-        internal List<TableMapping> _tableMappings { get; private set; } = new List<TableMapping>();
-        public IEnumerable<TableMapping> TableMappings => _tableMappings.ToArray();
+    //    /// <summary>
+    //    /// The type of the entity from the model
+    //    /// </summary>
+    //    public Type EntityType { get; set; }
 
-        public TableMapping Table => TableMappings.FirstOrDefault();
+    //    /// <summary>
+    //    /// The table(s) that the entity is mapped to
+    //    /// </summary>
+    //    internal List<TableMapping> _tableMappings { get; private set; } = new List<TableMapping>();
+    //    public IEnumerable<TableMapping> TableMappings => _tableMappings.ToArray();
 
-        public IEnumerable<PropertyInfo> Properties
-            => TableMappings.FirstOrDefault()?.PropertyMappings.Select(_pm => _pm.Property) ?? new PropertyInfo[0];
-    }
+    //    public TableMapping Table => TableMappings.FirstOrDefault();
 
-    /// <summary>
-    /// Represents the mapping of an entity to a table in the database
-    /// </summary>
-    public class TableMapping
-    {
-        /// <summary>
-        /// The name of the table the entity is mapped to
-        /// </summary>
-        public string TableName { get; internal set; }
+    //    public IEnumerable<PropertyInfo> Properties
+    //        => TableMappings.FirstOrDefault()?.PropertyMappings.Select(_pm => _pm.Property) ?? new PropertyInfo[0];
+    //}
 
-        /// <summary>
-        /// Details of the property-to-column mapping
-        /// </summary>
-        internal List<PropertyMapping> _propertyMappings { get; private set; } = new List<PropertyMapping>();
+    ///// <summary>
+    ///// Represents the mapping of an entity to a table in the database
+    ///// </summary>
+    //public class TableMapping
+    //{
+    //    /// <summary>
+    //    /// The name of the table the entity is mapped to
+    //    /// </summary>
+    //    public string TableName { get; internal set; }
 
-        public IEnumerable<PropertyMapping> PropertyMappings => _propertyMappings.ToArray();
-    }
+    //    /// <summary>
+    //    /// Details of the property-to-column mapping
+    //    /// </summary>
+    //    internal List<PropertyMapping> _propertyMappings { get; private set; } = new List<PropertyMapping>();
 
-    /// <summary>
-    /// Represents the mapping of a property to a column in the database
-    /// </summary>
-    public class PropertyMapping
-    {
-        /// <summary>
-        /// The property from the entity type
-        /// </summary>
-        public PropertyInfo Property { get; internal set; }
+    //    public IEnumerable<PropertyMapping> PropertyMappings => _propertyMappings.ToArray();
+    //}
 
-        /// <summary>
-        /// The column that property is mapped to
-        /// </summary>
-        public string ColumnName { get; internal set; }
-    }
+    ///// <summary>
+    ///// Represents the mapping of a property to a column in the database
+    ///// </summary>
+    //public class PropertyMapping
+    //{
+    //    /// <summary>
+    //    /// The property from the entity type
+    //    /// </summary>
+    //    public PropertyInfo Property { get; internal set; }
 
-    /// <summary>
-    /// Represents that mapping between entity types and tables in an EF model
-    /// </summary>
-    public class EFMapping
-    {
-        /// <summary>
-        /// Mapping information for each entity type in the model
-        /// </summary>
-        public IEnumerable<TypeMapping> TypeMappings { get; private set; }
+    //    /// <summary>
+    //    /// The column that property is mapped to
+    //    /// </summary>
+    //    public string ColumnName { get; internal set; }
+    //}
 
-        public TypeMapping TypeMetadata<Entity>()// where Entity : class 
-        {
-            var et = typeof(Entity);
-            return TypeMappings.FirstOrDefault(tm => tm.EntityType.Equals(et));
-        }
+    ///// <summary>
+    ///// Represents that mapping between entity types and tables in an EF model
+    ///// </summary>
+    //public class EFMapping
+    //{
+    //    /// <summary>
+    //    /// Mapping information for each entity type in the model
+    //    /// </summary>
+    //    public IEnumerable<TypeMapping> TypeMappings { get; private set; }
 
-        /// <summary>
-        /// Initializes an instance of the EfMapping class
-        /// </summary>
-        /// <param name="db">The context to get the mapping from</param>
-        public EFMapping(DbContext db)
-        {
-            var tmlist = new List<TypeMapping>();
-            this.TypeMappings = tmlist;
+    //    public TypeMapping TypeMetadata<Entity>()// where Entity : class 
+    //    {
+    //        var et = typeof(Entity);
+    //        return TypeMappings.FirstOrDefault(tm => tm.EntityType.Equals(et));
+    //    }
 
-            var metadata = ((IObjectContextAdapter)db).ObjectContext.MetadataWorkspace;
+    //    /// <summary>
+    //    /// Initializes an instance of the EfMapping class
+    //    /// </summary>
+    //    /// <param name="db">The context to get the mapping from</param>
+    //    public EFMapping(DbContext db)
+    //    {
+    //        var tmlist = new List<TypeMapping>();
+    //        this.TypeMappings = tmlist;
 
-            // Conceptual part of the model has info about the shape of our entity classes
-            var conceptualContainer = metadata.GetItems<EntityContainer>(DataSpace.CSpace).Single();
+    //        var metadata = ((IObjectContextAdapter)db).ObjectContext.MetadataWorkspace;
 
-            // Storage part of the model has info about the shape of our tables
-            var storeContainer = metadata.GetItems<EntityContainer>(DataSpace.SSpace).Single();
+    //        // Conceptual part of the model has info about the shape of our entity classes
+    //        var conceptualContainer = metadata.GetItems<EntityContainer>(DataSpace.CSpace).Single();
 
-            // Object part of the model that contains info about the actual CLR types
-            var objectItemCollection = ((ObjectItemCollection)metadata.GetItemCollection(DataSpace.OSpace));
+    //        // Storage part of the model has info about the shape of our tables
+    //        var storeContainer = metadata.GetItems<EntityContainer>(DataSpace.SSpace).Single();
 
-            //Clr collection
-            var clrCollection = metadata.GetItems<EntityType>(DataSpace.OSpace);
+    //        // Object part of the model that contains info about the actual CLR types
+    //        var objectItemCollection = ((ObjectItemCollection)metadata.GetItemCollection(DataSpace.OSpace));
 
-            // Object-Conceptual mapping part of the model that contains info about the actual CLR types
-            var ocCollection = metadata.GetItemCollection(DataSpace.OCSpace);
+    //        //Clr collection
+    //        var clrCollection = metadata.GetItems<EntityType>(DataSpace.OSpace);
 
-            // Mapping part of model is not public, so we need to write to xml and use 'LINQ to XML'
-            var edmx = GetEdmx(db);
+    //        // Object-Conceptual mapping part of the model that contains info about the actual CLR types
+    //        var ocCollection = metadata.GetItemCollection(DataSpace.OCSpace);
 
-            // Loop thru each entity type in the model
-            foreach (var set in conceptualContainer.BaseEntitySets.OfType<EntitySet>())
-            {
-                var typeMapping = new TypeMapping();
-                tmlist.Add(typeMapping);
+    //        // Mapping part of model is not public, so we need to write to xml and use 'LINQ to XML'
+    //        var edmx = GetEdmx(db);
 
-                var ocmap = ocCollection.FirstOrDefault(oc => oc.conceptualIdentity() == set.ElementType.FullName);
-                var clrItem = clrCollection.FirstOrDefault(ct => ct.FullName == ocmap.objectIdentity());
-                typeMapping.EntityType = objectItemCollection.GetClrType(clrItem);
+    //        // Loop thru each entity type in the model
+    //        foreach (var set in conceptualContainer.BaseEntitySets.OfType<EntitySet>())
+    //        {
+    //            var typeMapping = new TypeMapping();
+    //            tmlist.Add(typeMapping);
 
-                //// Get the CLR type of the entity
-                //typeMapping.EntityType = metadata
-                //    .GetItems<EntityType>(DataSpace.OSpace)
-                //    .Select(e => objectItemCollection.GetClrType(e))
-                //    .SingleOrDefault(e => e.FullName == set.ElementType.FullName);
+    //            var ocmap = ocCollection.FirstOrDefault(oc => oc.conceptualIdentity() == set.ElementType.FullName);
+    //            var clrItem = clrCollection.FirstOrDefault(ct => ct.FullName == ocmap.objectIdentity());
+    //            typeMapping.EntityType = objectItemCollection.GetClrType(clrItem);
 
-                // Get the mapping fragments for this type
-                // (types may have mutliple fragments if 'Entity Splitting' is used)
-                var mappingFragments = edmx
-                    .Descendants()
-                    .Single(e =>
-                        e.Name.LocalName == "EntityTypeMapping"
-                        && e.Attribute("TypeName").Value == set.ElementType.FullName)
-                    .Descendants()
-                    .Where(e => e.Name.LocalName == "MappingFragment");
+    //            //// Get the CLR type of the entity
+    //            //typeMapping.EntityType = metadata
+    //            //    .GetItems<EntityType>(DataSpace.OSpace)
+    //            //    .Select(e => objectItemCollection.GetClrType(e))
+    //            //    .SingleOrDefault(e => e.FullName == set.ElementType.FullName);
+
+    //            // Get the mapping fragments for this type
+    //            // (types may have mutliple fragments if 'Entity Splitting' is used)
+    //            var mappingFragments = edmx
+    //                .Descendants()
+    //                .Single(e =>
+    //                    e.Name.LocalName == "EntityTypeMapping"
+    //                    && e.Attribute("TypeName").Value == set.ElementType.FullName)
+    //                .Descendants()
+    //                .Where(e => e.Name.LocalName == "MappingFragment");
 
 
-                foreach (var mapping in mappingFragments)
-                {
-                    var tableMapping = new TableMapping();
-                    typeMapping._tableMappings.Add(tableMapping);
+    //            foreach (var mapping in mappingFragments)
+    //            {
+    //                var tableMapping = new TableMapping();
+    //                typeMapping._tableMappings.Add(tableMapping);
 
-                    // Find the table that this fragment maps to
-                    var storeset = mapping.Attribute("StoreEntitySet").Value;
-                    tableMapping.TableName = (string)storeContainer
-                        .BaseEntitySets.OfType<EntitySet>()
-                        .Single(s => s.Name == storeset)
-                        .MetadataProperties["Table"].Value;
+    //                // Find the table that this fragment maps to
+    //                var storeset = mapping.Attribute("StoreEntitySet").Value;
+    //                tableMapping.TableName = (string)storeContainer
+    //                    .BaseEntitySets.OfType<EntitySet>()
+    //                    .Single(s => s.Name == storeset)
+    //                    .MetadataProperties["Table"].Value;
 
-                    // Find the property-to-column mappings
-                    var propertyMappings = mapping
-                        .Descendants()
-                        .Where(e => e.Name.LocalName == "ScalarProperty");
+    //                // Find the property-to-column mappings
+    //                var propertyMappings = mapping
+    //                    .Descendants()
+    //                    .Where(e => e.Name.LocalName == "ScalarProperty");
 
-                    foreach (var propertyMapping in propertyMappings)
-                    {
-                        // Find the property and column being mapped
-                        var propertyName = propertyMapping.Attribute("Name").Value;
-                        var columnName = propertyMapping.Attribute("ColumnName").Value;
+    //                foreach (var propertyMapping in propertyMappings)
+    //                {
+    //                    // Find the property and column being mapped
+    //                    var propertyName = propertyMapping.Attribute("Name").Value;
+    //                    var columnName = propertyMapping.Attribute("ColumnName").Value;
 
-                        tableMapping._propertyMappings.Add(new PropertyMapping
-                        {
-                            Property = typeMapping.EntityType.GetProperty(propertyName),
-                            ColumnName = columnName
-                        });
-                    }
-                }
-            }
-        }
+    //                    tableMapping._propertyMappings.Add(new PropertyMapping
+    //                    {
+    //                        Property = typeMapping.EntityType.GetProperty(propertyName),
+    //                        ColumnName = columnName
+    //                    });
+    //                }
+    //            }
+    //        }
+    //    }
 
-        private static XDocument GetEdmx(DbContext db)
-        {
-            XDocument doc;
-            using (var memoryStream = new MemoryStream())
-            {
-                using (var xmlWriter = XmlWriter.Create(memoryStream, new XmlWriterSettings { Indent = true }))
-                {
-                    EdmxWriter.WriteEdmx(db, xmlWriter);
-                }
 
-                memoryStream.Position = 0;
+    //    /// <summary>
+    //    /// Initializes an instance of the EfMapping class
+    //    /// </summary>
+    //    /// <param name="dbm">The context to get the mapping from</param>
+    //    public EFMapping(DbModel dbm)
+    //    {
+    //        var _typeMappings = new List<TypeMapping>();
+    //        dbm.ConceptualToStoreMapping
+    //            .EntitySetMappings
+    //            .SelectMany(_esm => _esm.EntityTypeMappings)
+    //            .ForAll((_cnt, _etMapping) => _typeMappings.Add(new TypeMapping(_etMapping.Fragments.ToArray())));
+            
+    //        this.TypeMappings = _typeMappings;
+    //    }
 
-                doc = XDocument.Load(memoryStream);
-            }
-            return doc;
-        }
-    }
+    //    private static XDocument GetEdmx(DbContext db)
+    //    {
+    //        XDocument doc;
+    //        using (var memoryStream = new MemoryStream())
+    //        {
+    //            using (var xmlWriter = XmlWriter.Create(memoryStream, new XmlWriterSettings { Indent = true }))
+    //            {
+    //                EdmxWriter.WriteEdmx(db, xmlWriter);
+    //            }
 
-    public static class __MetadataExtensions
+    //            memoryStream.Position = 0;
+
+    //            doc = XDocument.Load(memoryStream);
+    //        }
+    //        return doc;
+    //    }
+    //    private static XDocument GetEdmx(DbModel dbm)
+    //    {
+    //        XDocument doc;
+    //        using (var memoryStream = new MemoryStream())
+    //        {
+    //            using (var xmlWriter = XmlWriter.Create(memoryStream, new XmlWriterSettings { Indent = true }))
+    //            {
+    //                EdmxWriter.WriteEdmx(dbm, xmlWriter);
+    //            }
+
+    //            memoryStream.Position = 0;
+
+    //            doc = XDocument.Load(memoryStream);
+    //        }
+    //        return doc;
+    //    }
+
+    //    public static object Init(DbModel db)
+    //    {
+    //        var edmx = GetEdmx(db);
+    //        var dns = XNamespace.Get("http://schemas.microsoft.com/ado/2009/11/edmx");
+    //        var cans = XNamespace.Get("http://schemas.microsoft.com/ado/2013/11/edm/customannotation");
+    //        var sns = XNamespace.Get("http://schemas.microsoft.com/ado/2009/11/edm");
+    //        var ssns = XNamespace.Get("http://schemas.microsoft.com/ado/2009/11/edm/ssdl");
+
+    //        var clrMap = edmx.Root
+    //            .Element(dns + "Runtime")
+    //            .Element(dns + "ConceptualModels")
+    //            .Element(sns + "Schema")
+    //            .Elements(sns+ "EntityType")
+    //            .Select(_etElement => new
+    //            {
+    //                TypeMapping = new TypeMapping { EntityType = Type.GetType(_etElement.Attribute(cans + "ClrType").Value) },
+    //                ConceptualName = _etElement.Attribute(sns + "Name").Value,
+    //                Alias = _etElement.Parent.Attribute(sns + "Alias")
+    //            })
+    //            .ToArray();
+
+
+    //        var tableMaps = edmx.Root
+    //            .Element(dns + "Runtime")
+    //            .Element(dns + "StorageModels")
+    //            .Element(ssns + "Schema")
+    //            .Element(ssns + "EntityContainer")
+    //            .Elements(ssns + "EntitySet");
+
+    //        clrMap.ForAll((cnt, next) =>
+    //        {
+    //            next.TypeMapping.
+    //        });
+
+    //        var tableMap = edmx.Root
+    //            .Element(dns + "Runtime")
+    //            .Element(dns + "StorageModels")
+    //            .Element(ssns + "Schema")
+    //            .Element(ssns + "EntityContainer")
+    //            .Elements(ssns + "EntitySet")
+
+    //        //var clrQMap = edmx.Root
+    //        //    .Element(dns + "Runtime")
+    //        //    .Element(dns + "ConceptualModels")
+    //        //    .Element(sns + "Schema")
+    //        //    .Element(sns + "EntityContainer")
+    //        //    .Elements(sns + "EntitySet")
+    //        //    .Select(_elt => new { QName = _elt.Attribute(sns + "EntityType"), Clr = clrMap.FirstOrDefault(_x => _x.Name == _elt.Attribute(sns + "")) })
+    //        //    .ToArray();
+    //        return null;
+    //    }
+    //}
+
+    public static class MetadataExtensions
     {
         public static string conceptualIdentity(this GlobalItem gitem)
         {
@@ -208,5 +298,99 @@ namespace Axis.Jupiter.Europa.Utils
             var parts = gitem.ToString().Split(':');
             return parts[0];
         }
+
+        public static XDocument GetEdmx(this DbModel dbm)
+        {
+            XDocument doc;
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var xmlWriter = XmlWriter.Create(memoryStream, new XmlWriterSettings { Indent = true }))
+                {
+                    EdmxWriter.WriteEdmx(dbm, xmlWriter);
+                }
+
+                memoryStream.Position = 0;
+
+                doc = XDocument.Load(memoryStream);
+            }
+            return doc;
+        }
+    }
+
+    public class EFMappings
+    {
+        public EFMappings(DbModel model)
+        {
+            model.ConceptualToStoreMapping
+                .EntitySetMappings
+                .SelectMany(_esm => _esm.EntityTypeMappings.SelectMany(_etm => _etm.Fragments.Select(_ef =>
+                {
+                    var clrType = _etm.EntityTypes.FirstOrDefault()
+                        .MetadataProperties
+                        .FirstOrDefault(_mdp => _mdp.Name == "http://schemas.microsoft.com/ado/2013/11/edm/customannotation:ClrType")
+                        .Value
+                        .As<Type>();
+
+                    return new EFModel
+                    {
+                        ClrType = clrType,
+                        MappedTable =  _ef.StoreEntitySet.Table,
+                        Properties = _ef.PropertyMappings.Where(_pm => _pm.Is<ScalarPropertyMapping>()).Select(_pm =>
+                        {
+                            var column = _pm.As<ScalarPropertyMapping>().Column;
+                            return new PropertyModel
+                            {
+                                ClrProperty = clrType.GetProperty(_pm.Property.Name),
+                                MappedProperty = column.Name,
+                                Key = column.IsStoreGeneratedIdentity ? PropertyModel.KeyMode.StoreGenerated :
+                                      column.DeclaringType.As<EntityType>().KeyProperties.Contains(column) ? PropertyModel.KeyMode.SourceGenerated :
+                                      PropertyModel.KeyMode.None
+                            };
+                        })
+                    };
+                })))
+                .ForAll((_cnt, _next) => _models.Add(_next));
+        }
+
+        private List<EFModel> _models = new List<EFModel>();
+
+        public IEnumerable<EFModel> ModelMappings => _models.ToArray();
+
+        public EFModel MappingFor<Entity>() => MappingFor(typeof(Entity));
+        public EFModel MappingFor(Type entityType) => _models.FirstOrDefault(_model => _model.ClrType == entityType);
+    }
+
+    public class EFModel
+    {
+        public Type ClrType { get; set; }
+        public string MappedTable { get; set; }
+
+        private HashSet<PropertyModel> _props = new HashSet<PropertyModel>();
+        public IEnumerable<PropertyModel> Properties
+        {
+            get { return _props.ToArray(); }
+            set
+            {
+                _props.Clear();
+                if (value != null) _props.AddRange(value);
+            }
+        }
+    }
+
+    public class PropertyModel
+    {
+        public enum KeyMode { None, StoreGenerated, SourceGenerated }
+
+        public PropertyInfo ClrProperty { get; set; }
+        public string MappedProperty { get; set; }
+        public bool IsKey => Key != KeyMode.None;
+
+        public KeyMode Key { get; set; }
+
+
+        public override bool Equals(object obj)
+            => obj.As<PropertyModel>().Pipe(_pm => _pm?.ClrProperty == ClrProperty && 
+                                                   _pm?.MappedProperty == MappedProperty);
+        public override int GetHashCode() => this.PropertyHash();
     }
 }

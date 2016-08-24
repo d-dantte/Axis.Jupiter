@@ -8,35 +8,60 @@ using Axis.Jupiter.Europa.Module;
 using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Data.Entity.ModelConfiguration;
+using Axis.Luna.Extensions;
+using Axis.Jupiter.Europa.Utils;
 
 namespace Axis.Jupiter.Europa
 {
-    public class ContextConfiguration
+    public class ContextConfiguration<Context>
+    where Context: DbContext
     {
-        internal dynamic DatabaseInitializer { get; private set; }
+        private DbModel _model { get; set; }
+        private DbCompiledModel _compiledModel { get; set; }
+        private Dictionary<string, IModuleConfigProvider> Modules { get; set; } = new Dictionary<string, IModuleConfigProvider>();
+
+        internal IDatabaseInitializer<Context> DatabaseInitializer { get; private set; }
         internal string ConnectionString { get; private set; }
-        internal Dictionary<string, IModuleConfigProvider> Modules { get; private set; } = new Dictionary<string, IModuleConfigProvider>();
         internal SqlBulkCopyOptions BulkCopyOptions { get; private set; }
+        internal Action<DbContextConfiguration> EFContextConfiguration { get; set; }
 
-        internal Action<DbContextConfiguration> EFContextConfiguration = null;
-
-        public IEnumerable<Type> ConfiguredEntityTypes() => Modules.Values.SelectMany(_m => _m.ConfiguredTypes());
+        public EFMappings EFMappings { get; private set; }
 
 
-        public ContextConfiguration WithInitializer<Context>(IDatabaseInitializer<Context> initializer)
-        where Context : DbContext => this.UsingValue(t => DatabaseInitializer = initializer);
+        public IEnumerable<Type> ConfiguredEntityTypes => Modules.Values.SelectMany(_m => _m.ConfiguredTypes());
+        public IEnumerable<IModuleConfigProvider> ConfiguredModules => Modules.Values.ToArray();
 
-        public ContextConfiguration WithConnection(string entityConnection) => this.UsingValue(t => ConnectionString = entityConnection);
 
-        public ContextConfiguration WithEFConfiguraton(Action<DbContextConfiguration> contextConfig) => this.UsingValue(t => EFContextConfiguration = contextConfig);
+        public ContextConfiguration<Context> WithInitializer(IDatabaseInitializer<Context> initializer)
+            => this.UsingValue(t => DatabaseInitializer = initializer);
 
-        public ContextConfiguration WithBulkCopyOptions(SqlBulkCopyOptions options) => this.UsingValue(_v => BulkCopyOptions = options);
+        public ContextConfiguration<Context> WithConnection(string entityConnection) => this.UsingValue(t => ConnectionString = entityConnection);
 
-        /// <summary>
-        /// Adds a module-configuration to this Context configuration.
-        /// </summary>
-        /// <param name="seeder"></param>
-        /// <returns></returns>
-        public ContextConfiguration UsingModule(IModuleConfigProvider module) => this.UsingValue(t => Modules.Add(module.ModuleName, module));
+        public ContextConfiguration<Context> WithEFConfiguraton(Action<DbContextConfiguration> contextConfig) => this.UsingValue(t => EFContextConfiguration = contextConfig);
+
+        public ContextConfiguration<Context> WithBulkCopyOptions(SqlBulkCopyOptions options) => this.UsingValue(_v => BulkCopyOptions = options);
+        
+        public ContextConfiguration<Context> UsingModule(IModuleConfigProvider module) => this.UsingValue(t => Modules.Add(module.ModuleName, module));
+
+
+        public DbCompiledModel Compile(DbModelBuilder builder)
+        {
+            if (_compiledModel == null)
+            {
+                ConfiguredModules.ForAll((_cnt, _module) => _module.ConfigureContext(builder));
+
+                new SqlConnection(ConnectionString).Using(sql =>
+                {
+                    _model = builder.Build(sql);
+                });
+
+                _compiledModel = _model.Compile();
+                EFMappings = new EFMappings(_model);
+            }
+
+            return _compiledModel;
+        }
+        public DbCompiledModel Compile() => Compile(new DbModelBuilder(DbModelBuilderVersion.Latest));
     }
 }
