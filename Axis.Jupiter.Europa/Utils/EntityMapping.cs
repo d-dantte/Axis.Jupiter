@@ -46,7 +46,7 @@ namespace Axis.Jupiter.Europa.Utils
                          .Value
                          .As<Type>();
                  
-                     return new EFModel
+                     return new TypeModel
                      {
                          ClrType = clrType,
                          MappedTable =  _ef.StoreEntitySet.Table,
@@ -67,15 +67,15 @@ namespace Axis.Jupiter.Europa.Utils
                  .ForAll((_cnt, _next) => _models.Add(_next));
         }
 
-        private List<EFModel> _models = new List<EFModel>();
+        private List<TypeModel> _models = new List<TypeModel>();
 
-        public IEnumerable<EFModel> ModelMappings => _models.ToArray();
+        public IEnumerable<TypeModel> ModelMappings => _models.ToArray();
 
-        public EFModel MappingFor<Entity>() => MappingFor(typeof(Entity));
-        public EFModel MappingFor(Type entityType) => _models.FirstOrDefault(_model => _model.ClrType == entityType);
+        public TypeModel MappingFor<Entity>() => MappingFor(typeof(Entity));
+        public TypeModel MappingFor(Type entityType) => _models.FirstOrDefault(_model => _model.ClrType == entityType);
     }
 
-    public class EFModel
+    public class TypeModel
     {
         public Type ClrType { get; internal set; }
         public string MappedTable { get; internal set; }

@@ -24,55 +24,67 @@ namespace Axis.Jupiter.Europa.Module
 
         public abstract string ModuleName { get; }
 
+        public bool IsLocked { get; private set; }
+
         public IEnumerable<KeyValuePair<Type, dynamic>> StoreQueryGenerators => _storeQueryGenerators.ToArray();
         public IEnumerable<KeyValuePair<string, dynamic>> ContextQueryGenerators => _contextQueryGenerators.ToArray();
         #endregion
 
         #region Methods
 
+        public void Lock() => IsLocked = true;
+
         public IEnumerable<Type> ConfiguredTypes() => _entityConfigs.Keys;
 
         public IModuleConfigProvider UsingModelBuilder(Action<DbModelBuilder> action)
-            => this.UsingValue(t => _modelBuilderActions.Add(action.ThrowIfNull()));
+            => Try(() => _modelBuilderActions.Add(action.ThrowIfNull()));
 
         public IModuleConfigProvider UsingConfiguration<Entity>(EntityTypeConfiguration<Entity> configuration)
-        where Entity : class => this.UsingValue(t => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
+        where Entity : class => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
         public IModuleConfigProvider UsingConfiguration<Entity>(ComplexTypeConfiguration<Entity> configuration)
-        where Entity : class => this.UsingValue(t => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
+        where Entity : class => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
 
         public IModuleConfigProvider UsingEntitySeed<Entity>(Action<ObjectStore<Entity>> seeder)
-        where Entity : class => this.UsingValue(t => _entitySeeders.GetOrAdd(typeof(Entity), _k => new List<dynamic>()).Add(seeder.ThrowIfNull()));
+        where Entity : class => Try(() => _entitySeeders.GetOrAdd(typeof(Entity), _k => new List<dynamic>()).Add(seeder.ThrowIfNull()));
 
         public IModuleConfigProvider UsingContext(Action<IDataContext> contextAction)
-            => this.UsingValue(v => _contextActions.Add(contextAction.ThrowIfNull()));
+            => Try(() => _contextActions.Add(contextAction.ThrowIfNull()));
 
         public IModuleConfigProvider WithStoreQueryGenerator<Entity>(Func<IDataContext, IQueryable<Entity>> generator)
-        where Entity : class => this.UsingValue(v => _storeQueryGenerators.Add(typeof(Entity), generator.ThrowIfNull("null generator")));
+        where Entity : class => Try(() => _storeQueryGenerators.Add(typeof(Entity), generator.ThrowIfNull("null generator")));
 
         public IModuleConfigProvider WithContextQueryGenerator<Entity>(string queryIdentity, Func<IDataContext, object[], IQueryable<Entity>> generator)
-        where Entity : class => this.UsingValue(v => _contextQueryGenerators.Add(queryIdentity, generator.ThrowIfNull("null generator")));
+        where Entity : class => Try(() => _contextQueryGenerators.Add(queryIdentity, generator.ThrowIfNull("null generator")));
 
-        public void ConfigureContext(DbModelBuilder modelBuilder)
+        public void ConfigureContext(DbModelBuilder modelBuilder) => Try(() =>
         {
-            //do general configurations
-            _modelBuilderActions.ForEach(_mba => _mba.Invoke(modelBuilder));
+           //do general configurations
+           _modelBuilderActions.ForEach(_mba => _mba.Invoke(modelBuilder));
 
-            //do entity specific configurations
-            _entityConfigs.Values.ForAll((cnt, next) => modelBuilder.Configurations.Add(next));
-        }
+           //do entity specific configurations
+           _entityConfigs.Values.ForAll((cnt, next) => modelBuilder.Configurations.Add(next));
+        });
 
-        public void InitializeContext(EuropaContext context)
+        public void InitializeContext(EuropaContext context) => Try(() =>
         {
             //run context actions first
             _contextActions.ForAll((cnt, next) => next.Invoke(context));
-
+        
             //run entity seeders. I will deprecate this feature soonest.
             _entitySeeders.ForAll((cnt, next) =>
-            {
-                var GenericStore = StoreMethod.MakeGenericMethod(next.Key);
-                dynamic store = GenericStore.Invoke(context, null);
-                next.Value.ForAll((__cnt, _next) => _next.Invoke(store));
-            });
+                {
+                    var GenericStore = StoreMethod.MakeGenericMethod(next.Key);
+                    dynamic store = GenericStore.Invoke(context, null);
+                    next.Value.ForAll((__cnt, _next) => _next.Invoke(store));
+                });
+        });
+
+        private IModuleConfigProvider Try(Action action)
+        {
+            IsLocked.ThrowIf(_locked => _locked, "Attempting to configure a locked config provider");
+
+            action();
+            return this;
         }
 
         #endregion

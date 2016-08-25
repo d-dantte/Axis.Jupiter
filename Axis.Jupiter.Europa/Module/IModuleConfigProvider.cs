@@ -42,5 +42,13 @@ namespace Axis.Jupiter.Europa.Module
 
         void ConfigureContext(DbModelBuilder modelBuilder);
         void InitializeContext(EuropaContext context);
+
+        /// <summary>
+        /// Stops this module config provider from further accepting modifications. Can be called multiple times, but only the 
+        /// first call has any effect
+        /// </summary>
+        void Lock();
+
+        bool IsLocked { get; }
     }
 }

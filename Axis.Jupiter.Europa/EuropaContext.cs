@@ -20,6 +20,8 @@ namespace Axis.Jupiter.Europa
         private Dictionary<Type, dynamic> _queryGenerators { get; set; } = new Dictionary<Type, dynamic>();
         private Dictionary<string, dynamic> _contextQueries { get; set; } = new Dictionary<string, dynamic>();
         private Dictionary<Type, SqlBulkCopy> _bulkCopyContextMap = new Dictionary<Type, SqlBulkCopy>();
+
+        public EFMappings EFMappings => ContextConfig.EFMappings;
         #endregion
 
         #region Init
