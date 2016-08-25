@@ -72,7 +72,10 @@ namespace Axis.Jupiter.Europa.Utils
         public IEnumerable<TypeModel> ModelMappings => _models.ToArray();
 
         public TypeModel MappingFor<Entity>() => MappingFor(typeof(Entity));
-        public TypeModel MappingFor(Type entityType) => _models.FirstOrDefault(_model => _model.ClrType == entityType);
+        public TypeModel MappingFor(Type entityType) => this.MappingsFor(entityType).FirstOrDefault();
+
+        public IEnumerable<TypeModel> MappingsFor<Entity>() => MappingsFor(typeof(Entity));
+        public IEnumerable<TypeModel> MappingsFor(Type entityType) => _models.Where(_model => _model.ClrType == entityType);
     }
 
     public class TypeModel
