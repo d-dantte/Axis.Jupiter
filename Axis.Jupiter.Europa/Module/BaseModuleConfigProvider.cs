@@ -65,7 +65,7 @@ namespace Axis.Jupiter.Europa.Module
            _entityConfigs.Values.ForAll((cnt, next) => modelBuilder.Configurations.Add(next));
         });
 
-        public void InitializeContext(EuropaContext context) => Try(() =>
+        public void InitializeContext(EuropaContext context) => this.UsingValue(t =>
         {
             //run context actions first
             _contextActions.ForAll((cnt, next) => next.Invoke(context));
