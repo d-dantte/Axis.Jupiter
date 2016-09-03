@@ -1,0 +1,7 @@
+
+2016/09/03 =======================================================================================================================================================
+1.   DO NOT make your entity properties virtual if you are going to use EF auto tracking. it causes an exception 
+     when you try updating you properties. 
+     https://social.msdn.microsoft.com/Forums/en-US/8d0f53bc-1da4-4de1-bffc-0dc23c152919/entity-framework-poco-2-property-changes?forum=adodotnetentityframework
+     
+2.   
