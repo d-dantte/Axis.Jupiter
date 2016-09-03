@@ -48,7 +48,9 @@
     <Compile Include="IObjectStore.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TypeCodec.cs" />
-    <Compile Include="Utils\SequencePage.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Utils\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
