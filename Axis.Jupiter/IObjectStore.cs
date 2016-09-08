@@ -21,6 +21,8 @@ namespace Axis.Jupiter
         IQueryable<Entity> Query { get; }
         IQueryable<Entity> ReadonlyQuery { get; }
 
+        IQueryable<Entity> QueryWith<TProp>(params Expression<Func<Entity, TProp>>[] tprops);
+
         /// <summary>
         /// Add an object to the store. Added objects do not represent objects that are already persisted in the database
         /// </summary>

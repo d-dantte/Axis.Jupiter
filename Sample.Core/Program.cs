@@ -17,7 +17,7 @@ namespace Sample.Core
     public class Program
     {
 
-        public static void Main(string[] args)
+        public static void Mainx(string[] args)
             => Operation.Try(() =>
             {
                 var config = 
@@ -70,7 +70,79 @@ namespace Sample.Core
             {
                 Console.WriteLine("An error occured!\n" + opr.GetException().FlattenMessage("\n"));
             });
+
+        public static void Main(string[] args)
+        {
+            new XYContext("server=(local);database=XYTest;integrated security=False;user id=sa;password=developer;multipleactiveresultsets=True").Using(x =>
+            {
+                var arr = x.XSet.ToArray();
+            });
+        }
     }
+
+    public class X
+    {
+        public long Id { get; set; }
+
+        public string Code { get; set; }
+
+        public ICollection<XRef> Xrs { get; set; } = new HashSet<XRef>();
+        public ICollection<Y> Ys { get; set; } = new HashSet<Y>();
+    }
+
+    public class XRef
+    {
+        public long Id { get; set; }
+
+        public X X { get; set; }
+
+        public string Code1 { get; set; }
+        public string Code2 { get; set; }
+    }
+
+    public class Y
+    {
+        public long Id { get; set; }
+
+        public string Code { get; set; }
+
+        public ICollection<X> Xs { get; set; } = new HashSet<X>();
+
+    }
+
+    public class XYContext: DbContext
+    {
+        public XYContext(string c) : base(c)
+        { }
+
+        public DbSet<X> XSet { get; set; }
+        public DbSet<XRef> XRefSet { get; set; }
+        public DbSet<Y> YSet { get; set; }
+
+        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<X>()
+                .UsingValue(xconfig =>
+                {
+                    xconfig.HasMany(x => x.Ys)
+                           .WithMany(y => y.Xs)
+                           .Map(m =>
+                           {
+                               m.ToTable("XY");
+                               m.MapLeftKey("XCode");
+                               m.MapRightKey("YCode");
+                           });
+                    
+                })
+                .Pipe(xconfig => modelBuilder.Configurations.Add(xconfig));
+
+            modelBuilder.Configurations.Add(modelBuilder.Entity<XRef>().UsingValue(xrconfig =>
+            {
+                
+            }));
+        }
+    }
+
 
     public class Context: DbContext
     {
