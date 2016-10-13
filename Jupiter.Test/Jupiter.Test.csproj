@@ -70,6 +70,16 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Axis.Jupiter.Europa\Axis.Jupiter.Europa.csproj">
+      <Project>{327c01d9-0abd-4b87-a75b-2ae9c026cfea}</Project>
+      <Name>Axis.Jupiter.Europa</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Axis.Jupiter\Axis.Jupiter.csproj">
+      <Project>{0184cfb2-ea0b-4ba1-9ecf-5fcbd7c4d964}</Project>
+      <Name>Axis.Jupiter</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>

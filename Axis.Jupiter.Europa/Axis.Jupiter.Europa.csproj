@@ -56,6 +56,9 @@
     <Compile Include="EuropaContext.cs" />
     <Compile Include="ContextConfiguration.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="LinqProvider\Provider.cs" />
+    <Compile Include="LinqProvider\Queryable.cs" />
+    <Compile Include="LinqProvider\TypeSystem.cs" />
     <Compile Include="Mappings\EntityMappings.cs" />
     <Compile Include="Module\BaseModuleConfigProvider.cs" />
     <Compile Include="Module\IModuleConfigProvider.cs" />

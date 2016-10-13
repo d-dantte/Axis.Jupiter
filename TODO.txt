@@ -9,3 +9,14 @@
 
 1.  Check for "_compiledModel" presence in the ContextConfiguration object before allowing all Using*, With*, Having* methods to
     work.
+
+2016/09/09 ====================================================================================================================
+
+1.   New feature for Europa. My proposed architecture is to just go straigt and design your business objects exactly how they should be
+     (with refs to other objects and such). In the *.OAModule assembly, either fully define the entities as mappings, or create new
+	 classes implementing some of the business classes and adding the necessary properties and annotations and whatnot - this will
+	 provide specific information for the underlying persistence schema. With this done, create proper mapping objects as usual.
+
+	 The Change for ObjectStore will come in it's "NewObject" method, for this will be able to create the appropriate object out of the
+	 box because the object will be mapped as a single-table-TPH model, with the inheritance "type" field transparent to the business
+	 model.

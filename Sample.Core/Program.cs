@@ -73,9 +73,25 @@ namespace Sample.Core
 
         public static void Main(string[] args)
         {
-            new XYContext("server=(local);database=XYTest;integrated security=False;user id=sa;password=developer;multipleactiveresultsets=True").Using(x =>
+            new XYContext("server=(local);database=XYTest;integrated security=False;user id=sa;password=developer;multipleactiveresultsets=True").Using(context =>
             {
-                var arr = x.XSet.ToArray();
+                //var x = new X();
+                //x.Ys.Add(new Y());
+
+                //context.Set<X>().Add(x);
+                //context.SaveChanges();
+            });
+
+            new XYContext("server=(local);database=XYTest;integrated security=False;user id=sa;password=developer;multipleactiveresultsets=True").Using(context =>
+            {
+                var x = new X();
+                x.Id = 1;
+                context.Set<X>().Attach(x);
+
+                x.Ys.Add(new Y());
+                x.Ys.Add(new Y());
+                x.Ys.Add(new Y());
+                context.SaveChanges();
             });
         }
     }
@@ -84,9 +100,7 @@ namespace Sample.Core
     {
         public long Id { get; set; }
 
-        public string Code { get; set; }
-
-        public ICollection<XRef> Xrs { get; set; } = new HashSet<XRef>();
+        //public ICollection<XRef> Xrs { get; set; } = new HashSet<XRef>();
         public ICollection<Y> Ys { get; set; } = new HashSet<Y>();
     }
 
@@ -103,8 +117,8 @@ namespace Sample.Core
     public class Y
     {
         public long Id { get; set; }
-
-        public string Code { get; set; }
+        //public string Code { get; set; }
+        
 
         public ICollection<X> Xs { get; set; } = new HashSet<X>();
 
@@ -125,14 +139,7 @@ namespace Sample.Core
                 .UsingValue(xconfig =>
                 {
                     xconfig.HasMany(x => x.Ys)
-                           .WithMany(y => y.Xs)
-                           .Map(m =>
-                           {
-                               m.ToTable("XY");
-                               m.MapLeftKey("XCode");
-                               m.MapRightKey("YCode");
-                           });
-                    
+                           .WithMany(y => y.Xs);
                 })
                 .Pipe(xconfig => modelBuilder.Configurations.Add(xconfig));
 
