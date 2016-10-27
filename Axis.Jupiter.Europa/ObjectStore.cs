@@ -64,11 +64,26 @@ namespace Axis.Jupiter.Europa
         {
             dobjs.ForAll((cnt, next) =>
             {
-                var entry = _context.Entry(next);
-                if (entry.State == EntityState.Detached) //Add(next); //<- old
-                    Set.Attach(next);
+                try
+                {
+                    //data exists already in the context?
+                    var entry = _context.Entry(next);
+                    if (entry.State == EntityState.Detached) //Add(next); //<- old
+                        Set.Attach(next);
 
-                entry.State = EntityState.Modified;
+                    entry.State = EntityState.Modified;
+                }
+                catch //failed to attach cus there was already another object in the context
+                {
+                    var tm = this._context.EFMappings.MappingFor<Entity>();
+                    var keys = tm.Properties.Where(_p => _p.IsKey).Select(_p => _p.ClrProperty.Name).ToArray();
+                    var local = Set.Find(keys.Select(_k => next.PropertyValue(_k)).ToArray());
+                    next.CopyTo(local);
+
+                    var entry = _context.Entry(local);
+                    if(entry.State != EntityState.Modified) entry.State = EntityState.Modified;
+                }
+
             });
 
             if (commit) Context.CommitChanges();
@@ -87,7 +102,7 @@ namespace Axis.Jupiter.Europa
         public Entity LoadReferences<TProp>(Entity dobj, params Expression<Func<Entity, TProp>>[] tprops)
         where TProp : class
         {
-            tprops.ToList().ForEach(tprop =>
+            tprops.ForAll((_cnt, tprop) =>
             {
                 if (IsCollectionProperty(tprop))
                 {

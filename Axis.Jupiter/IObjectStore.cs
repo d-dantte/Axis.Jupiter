@@ -13,6 +13,13 @@ namespace Axis.Jupiter
         IDataContext Context { get; }
         IObjectMetadata Metadata(Entity dobj);
 
+        /// <summary>
+        /// Eagerly load navigation properties for the supplied object
+        /// </summary>
+        /// <typeparam name="TProp"></typeparam>
+        /// <param name="dobj"></param>
+        /// <param name="tprops"></param>
+        /// <returns></returns>
         Entity LoadReferences<TProp>(Entity dobj, params Expression<Func<Entity, TProp>>[] tprops)
         where TProp : class;
 
@@ -21,6 +28,12 @@ namespace Axis.Jupiter
         IQueryable<Entity> Query { get; }
         IQueryable<Entity> ReadonlyQuery { get; }
 
+        /// <summary>
+        /// Configures an IQueryable with instructions to include the supplied navigation properties
+        /// </summary>
+        /// <typeparam name="TProp"></typeparam>
+        /// <param name="tprops"></param>
+        /// <returns></returns>
         IQueryable<Entity> QueryWith<TProp>(params Expression<Func<Entity, TProp>>[] tprops);
 
         /// <summary>
