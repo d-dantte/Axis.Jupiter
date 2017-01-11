@@ -78,7 +78,7 @@ namespace Axis.Jupiter.Europa
                     var tm = this._context.EFMappings.MappingFor<Entity>();
                     var keys = tm.Properties.Where(_p => _p.IsKey).Select(_p => _p.ClrProperty.Name).ToArray();
                     var local = Set.Find(keys.Select(_k => next.PropertyValue(_k)).ToArray());
-                    next.CopyTo(local);
+                    next.CopyTo(local, ObjectCopyMode.CopyModified);
 
                     var entry = _context.Entry(local);
                     if(entry.State != EntityState.Modified) entry.State = EntityState.Modified;

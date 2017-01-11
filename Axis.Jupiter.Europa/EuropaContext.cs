@@ -138,10 +138,12 @@ namespace Axis.Jupiter.Europa
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
+
             //dispose internal resources
             if (disposing)
             {
-                this._bulkCopyContextMap.Values.ForAll((_cnt, _next) => Eval(() => _next.Close()));
+                _bulkCopyContextMap.Values.ForAll((_cnt, _next) => Eval(() => _next.Close()));
             }
         }
 
