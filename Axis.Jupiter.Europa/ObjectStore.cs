@@ -47,7 +47,6 @@ namespace Axis.Jupiter.Europa
         }
 
         public IObjectStore<Entity> Add(Entity dobj) => Add(dobj.Enumerate());
-
         public IObjectStore<Entity> Add(IEnumerable<Entity> dobjs)
             => this.UsingValue(@this => (dobjs ?? new Entity[0]).ForAll((cnt, dobj) => Set.Add(dobj)));
 
@@ -91,7 +90,6 @@ namespace Axis.Jupiter.Europa
         }
 
         public Entity Find(params object[] arguments) => Set.Find(arguments);
-
         public Task<Entity> FindAsync(params object[] arguments) => Set.FindAsync(arguments);
 
 

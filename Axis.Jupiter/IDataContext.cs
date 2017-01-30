@@ -19,5 +19,10 @@ namespace Axis.Jupiter
         bool SupportsBulkPersist { get; }
 
         string Name { get; }
+
+        //Store Shortcuts
+        IObjectStore<Entity> Add<Entity>(Entity entity) where Entity: class;
+        IObjectStore<Entity> Modify<Entity>(Entity entity) where Entity: class;
+        IObjectStore<Entity> Delete<Entity>(Entity entity) where Entity: class;
     }
 }

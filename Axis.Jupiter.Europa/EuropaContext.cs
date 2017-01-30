@@ -136,6 +136,7 @@ namespace Axis.Jupiter.Europa
             return fnc?.Invoke(this, args ?? new object[0]) ?? (new Entity[0]).AsQueryable();
         }
 
+        private bool _disposed = false;
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
@@ -145,6 +146,8 @@ namespace Axis.Jupiter.Europa
             {
                 _bulkCopyContextMap.Values.ForAll((_cnt, _next) => Eval(() => _next.Close()));
             }
+
+            this._disposed = true;
         }
 
         public int CommitChanges() => this.SaveChanges();
@@ -157,6 +160,18 @@ namespace Axis.Jupiter.Europa
 
         public bool SupportsBulkPersist => true;
         public string Name => "Axis.Jupitar.Europa";
+
+
+        #region shortcuts
+        public IObjectStore<Entity> Add<Entity>(Entity entity)
+        where Entity: class => Store<Entity>().Add(entity);
+
+        public IObjectStore<Entity> Modify<Entity>(Entity entity)
+        where Entity: class => Store<Entity>().Modify(entity);
+
+        public IObjectStore<Entity> Delete<Entity>(Entity entity)
+        where Entity : class => Store<Entity>().Delete(entity);
+        #endregion
 
         #endregion
     }
