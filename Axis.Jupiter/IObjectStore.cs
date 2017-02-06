@@ -34,7 +34,7 @@ namespace Axis.Jupiter
         /// <typeparam name="TProp"></typeparam>
         /// <param name="tprops"></param>
         /// <returns></returns>
-        IQueryable<Entity> QueryWith<TProp>(params Expression<Func<Entity, TProp>>[] tprops);
+        IQueryable<Entity> QueryWith(params Expression<Func<Entity, object>>[] tprops);
 
         /// <summary>
         /// Add an object to the store. Added objects do not represent objects that are already persisted in the database

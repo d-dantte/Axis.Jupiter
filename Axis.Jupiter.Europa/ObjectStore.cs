@@ -30,7 +30,7 @@ namespace Axis.Jupiter.Europa
         public IQueryable<Entity> Query
             => (_context.QueryGeneratorFor<Entity>() as Func<IDataContext, IQueryable<Entity>>)?.Invoke(_context) ?? Set;
 
-        public IQueryable<Entity> QueryWith<TProp>(params Expression<Func<Entity, TProp>>[] tprops)
+        public IQueryable<Entity> QueryWith(params Expression<Func<Entity, object>>[] tprops)
             => tprops.Aggregate(Query, (_q, _tprop) => _q.Include(_tprop));
 
 
