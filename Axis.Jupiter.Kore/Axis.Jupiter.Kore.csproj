@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Command\DefaultPersistenceCommand.cs" />
     <Compile Include="Command\IPersistenceCommand.cs" />
     <Compile Include="PersistenceProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

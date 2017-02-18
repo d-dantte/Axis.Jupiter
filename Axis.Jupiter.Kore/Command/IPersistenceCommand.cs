@@ -10,7 +10,7 @@ namespace Axis.Jupiter.Kore.Command
     public interface IPersistenceCommands
     {
         Operation<Domain> Add<Domain>(Domain d) where Domain : class;
-        Operation<IEnumerable<Domain>> AddBulk<Domain>(IEnumerable<Domain> d) where Domain : class;
+        AsyncOperation<IEnumerable<Domain>> AddBulk<Domain>(IEnumerable<Domain> d) where Domain : class;
         Operation<Domain> Update<Domain>(Domain d) where Domain : class;
         Operation<Domain> Delete<Domain>(Domain d) where Domain : class;
     }
