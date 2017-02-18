@@ -17,10 +17,14 @@ namespace Axis.Jupiter.Kore
             _context = context.ThrowIfNull("invalid context supplied");
         }
 
+        public bool CanBulkInsert<Entity>() => OperationCache.BulkInsertOperations.ContainsKey(typeof(Entity));
         public bool CanInsert<Entity>() => OperationCache.InsertOperations.ContainsKey(typeof(Entity));
         public bool CanUpdate<Entity>() => OperationCache.UpdateOperations.ContainsKey(typeof(Entity));
         public bool CanDelete<Entity>() => OperationCache.DeleteOperations.ContainsKey(typeof(Entity));
 
+
+        public IEnumerable<Entity> BulkInsert<Entity>(IEnumerable<Entity> darr)
+        => ((Func<IEnumerable<Entity>, IDataContext, IEnumerable<Entity>>)OperationCache.BulkInsertOperations[typeof(Entity)]).Invoke(darr, _context);
 
         public Entity Insert<Entity>(Entity d)
         => ((Func<Entity, IDataContext, Entity>)OperationCache.InsertOperations[typeof(Entity)]).Invoke(d, _context);
@@ -35,10 +39,16 @@ namespace Axis.Jupiter.Kore
         
         public class Registrar
         {
+            internal Dictionary<Type, dynamic> BulkInsertOperations = new Dictionary<Type, dynamic>();
             internal Dictionary<Type, dynamic> InsertOperations = new Dictionary<Type, dynamic>();
             internal Dictionary<Type, dynamic> UpdateOperations = new Dictionary<Type, dynamic>();
             internal Dictionary<Type, dynamic> DeleteOperations = new Dictionary<Type, dynamic>();
 
+            public Registrar RegisterBulkInsert<Entity>(Func<IEnumerable<Entity>, IDataContext, IEnumerable<Entity>> inserter)
+            {
+                InsertOperations[typeof(Entity)] = inserter.ThrowIfNull();
+                return this;
+            }
             public Registrar RegisterInsert<Entity>(Func<Entity, IDataContext, Entity> inserter)
             {
                 InsertOperations[typeof(Entity)] = inserter.ThrowIfNull();
