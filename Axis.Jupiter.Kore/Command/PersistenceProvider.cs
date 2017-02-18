@@ -17,19 +17,19 @@ namespace Axis.Jupiter.Kore
             _context = context.ThrowIfNull("invalid context supplied");
         }
 
-        public bool CanInsert<Domain>() => OperationCache.InsertOperations.ContainsKey(typeof(Domain));
-        public bool CanUpdate<Domain>() => OperationCache.UpdateOperations.ContainsKey(typeof(Domain));
-        public bool CanDelete<Domain>() => OperationCache.DeleteOperations.ContainsKey(typeof(Domain));
+        public bool CanInsert<Entity>() => OperationCache.InsertOperations.ContainsKey(typeof(Entity));
+        public bool CanUpdate<Entity>() => OperationCache.UpdateOperations.ContainsKey(typeof(Entity));
+        public bool CanDelete<Entity>() => OperationCache.DeleteOperations.ContainsKey(typeof(Entity));
 
 
-        public Domain Insert<Domain>(Domain d)
-        => ((Func<Domain, IDataContext, Domain>)OperationCache.InsertOperations[typeof(Domain)]).Invoke(d, _context);
+        public Entity Insert<Entity>(Entity d)
+        => ((Func<Entity, IDataContext, Entity>)OperationCache.InsertOperations[typeof(Entity)]).Invoke(d, _context);
 
-        public Domain Update<Domain>(Domain d)
-        => ((Func<Domain, IDataContext, Domain>)OperationCache.UpdateOperations[typeof(Domain)]).Invoke(d, _context);
+        public Entity Update<Entity>(Entity d)
+        => ((Func<Entity, IDataContext, Entity>)OperationCache.UpdateOperations[typeof(Entity)]).Invoke(d, _context);
 
-        public Domain Delete<Domain>(Domain d)
-        => ((Func<Domain, IDataContext, Domain>)OperationCache.DeleteOperations[typeof(Domain)]).Invoke(d, _context);
+        public Entity Delete<Entity>(Entity d)
+        => ((Func<Entity, IDataContext, Entity>)OperationCache.DeleteOperations[typeof(Entity)]).Invoke(d, _context);
 
 
         
@@ -39,19 +39,19 @@ namespace Axis.Jupiter.Kore
             internal Dictionary<Type, dynamic> UpdateOperations = new Dictionary<Type, dynamic>();
             internal Dictionary<Type, dynamic> DeleteOperations = new Dictionary<Type, dynamic>();
 
-            public Registrar RegisterInsert<Domain>(Func<Domain, IDataContext, Domain> inserter)
+            public Registrar RegisterInsert<Entity>(Func<Entity, IDataContext, Entity> inserter)
             {
-                InsertOperations[typeof(Domain)] = inserter.ThrowIfNull();
+                InsertOperations[typeof(Entity)] = inserter.ThrowIfNull();
                 return this;
             }
-            public Registrar RegisterUpdate<Domain>(Func<Domain, IDataContext, Domain> updater)
+            public Registrar RegisterUpdate<Entity>(Func<Entity, IDataContext, Entity> updater)
             {
-                UpdateOperations[typeof(Domain)] = updater.ThrowIfNull();
+                UpdateOperations[typeof(Entity)] = updater.ThrowIfNull();
                 return this;
             }
-            public Registrar RegisterDelete<Domain>(Func<Domain, IDataContext, Domain> deleter)
+            public Registrar RegisterDelete<Entity>(Func<Entity, IDataContext, Entity> deleter)
             {
-                DeleteOperations[typeof(Domain)] = deleter.ThrowIfNull();
+                DeleteOperations[typeof(Entity)] = deleter.ThrowIfNull();
                 return this;
             }
         }
