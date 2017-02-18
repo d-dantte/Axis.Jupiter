@@ -1,38 +1,35 @@
 ﻿using Axis.Luna.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Axis.Jupiter.Kore
 {
     public class PersistenceProvider
     {
-        private Registrar _registrar = new Registrar();
         private IDataContext _context = null;
 
-        public PersistenceProvider(IDataContext context, Action<Registrar> operationRegistration)
+        public Registrar OperationCache { get; } = new Registrar();
+
+        public PersistenceProvider(IDataContext context, Action<Registrar> operationRegistration  = null)
         {
-            operationRegistration.ThrowIfNull("invalid registrations")
-                                 .Invoke(_registrar);
+            operationRegistration?.Invoke(OperationCache);
 
             _context = context.ThrowIfNull("invalid context supplied");
         }
 
-        public bool CanInsert<Domain>() => _registrar.InsertOperations.ContainsKey(typeof(Domain));
-        public bool CanUpdate<Domain>() => _registrar.UpdateOperations.ContainsKey(typeof(Domain));
-        public bool CanDelete<Domain>() => _registrar.DeleteOperations.ContainsKey(typeof(Domain));
+        public bool CanInsert<Domain>() => OperationCache.InsertOperations.ContainsKey(typeof(Domain));
+        public bool CanUpdate<Domain>() => OperationCache.UpdateOperations.ContainsKey(typeof(Domain));
+        public bool CanDelete<Domain>() => OperationCache.DeleteOperations.ContainsKey(typeof(Domain));
 
 
         public Domain Insert<Domain>(Domain d)
-        => ((Func<Domain, IDataContext, Domain>)_registrar.InsertOperations[typeof(Domain)]).Invoke(d, _context);
+        => ((Func<Domain, IDataContext, Domain>)OperationCache.InsertOperations[typeof(Domain)]).Invoke(d, _context);
 
         public Domain Update<Domain>(Domain d)
-        => ((Func<Domain, IDataContext, Domain>)_registrar.UpdateOperations[typeof(Domain)]).Invoke(d, _context);
+        => ((Func<Domain, IDataContext, Domain>)OperationCache.UpdateOperations[typeof(Domain)]).Invoke(d, _context);
 
         public Domain Delete<Domain>(Domain d)
-        => ((Func<Domain, IDataContext, Domain>)_registrar.DeleteOperations[typeof(Domain)]).Invoke(d, _context);
+        => ((Func<Domain, IDataContext, Domain>)OperationCache.DeleteOperations[typeof(Domain)]).Invoke(d, _context);
 
 
         
