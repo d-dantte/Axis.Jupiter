@@ -72,7 +72,7 @@ namespace Axis.Jupiter.Europa
 
                     entry.State = EntityState.Modified;
                 }
-                catch //failed to attach cus there was already another object in the context
+                catch(Exception e) //failed to attach cus there was already another object in the context
                 {
                     var tm = this._context.EFMappings.MappingFor<Entity>();
                     var keys = tm.Properties.Where(_p => _p.IsKey).Select(_p => _p.ClrProperty.Name).ToArray();

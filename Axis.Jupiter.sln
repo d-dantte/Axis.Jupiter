@@ -23,6 +23,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Core", "Sample.Core\Sample.Core.csproj", "{59A56498-24CE-4409-BBD7-DDA1FB961265}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jupiter.Kore", "Jupiter.Kore", "{D9DFA5E3-B90E-4757-A97E-C32C6A527637}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.Kore", "Axis.Jupiter.Kore\Axis.Jupiter.Kore.csproj", "{9AC7FFFD-DC4D-497A-AA43-2E5D71F62FD7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +49,10 @@ Global
 		{59A56498-24CE-4409-BBD7-DDA1FB961265}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59A56498-24CE-4409-BBD7-DDA1FB961265}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59A56498-24CE-4409-BBD7-DDA1FB961265}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9AC7FFFD-DC4D-497A-AA43-2E5D71F62FD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AC7FFFD-DC4D-497A-AA43-2E5D71F62FD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9AC7FFFD-DC4D-497A-AA43-2E5D71F62FD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9AC7FFFD-DC4D-497A-AA43-2E5D71F62FD7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,5 +62,6 @@ Global
 		{327C01D9-0ABD-4B87-A75B-2AE9C026CFEA} = {2275AA7D-018C-4262-AE95-69040B1773CE}
 		{0082FE01-B3EA-4313-B1E2-745EE85F58E1} = {D3C80443-9879-41B1-B9E7-362DF1F7E6F9}
 		{59A56498-24CE-4409-BBD7-DDA1FB961265} = {D3C80443-9879-41B1-B9E7-362DF1F7E6F9}
+		{9AC7FFFD-DC4D-497A-AA43-2E5D71F62FD7} = {D9DFA5E3-B90E-4757-A97E-C32C6A527637}
 	EndGlobalSection
 EndGlobal
