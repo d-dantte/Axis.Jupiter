@@ -13,7 +13,9 @@ namespace Sample.Core.Mappers
             Property(e => e.FirstName).HasMaxLength(250);
             Property(e => e.LastName).HasColumnName("ABCD").HasMaxLength(250);
 
-            HasRequired(e => e.ContactInfo).WithRequiredPrincipal(e => e.Owner);
+            this.HasMany(e => e.ContactInfo)
+                .WithRequired(e => e.Owner)
+                .HasForeignKey(e => e.OwnerId);
         }
     }
 

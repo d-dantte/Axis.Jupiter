@@ -13,6 +13,6 @@ namespace Sample.Core.Domain
         public DateTime DateOfBirth { get; set; }
         public long Id { get; set; }
 
-        public virtual Contact ContactInfo { get; set; }
+        public virtual ICollection<Contact> ContactInfo { get; set; } = new HashSet<Contact>();
     }
 }

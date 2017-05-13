@@ -11,11 +11,17 @@ namespace Axis.Jupiter.Kore
 
         public Registrar OperationCache { get; } = new Registrar();
 
-        public PersistenceProvider(IDataContext context, Action<Registrar> operationRegistration  = null)
+        public PersistenceProvider(IDataContext context, Action<Registrar> commandLoader  = null)
         {
-            operationRegistration?.Invoke(OperationCache);
+            commandLoader?.Invoke(OperationCache);
 
             _context = context.ThrowIfNull("invalid context supplied");
+        }
+
+        public PersistenceProvider LoadCommands(ICommandModuleLoader loader)
+        {
+            loader.LoadCommands(OperationCache);
+            return this;
         }
 
         public bool CanBulkInsert<Model>() => OperationCache.BulkInsertOperations.ContainsKey(typeof(Model));

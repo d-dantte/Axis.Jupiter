@@ -16,6 +16,7 @@ namespace Sample.Core.Domain
         public WebSite Web { get; set; }
 
         public virtual Person Owner { get; set; }
+        public long OwnerId { get; set; }
 
 
     }

@@ -10,7 +10,10 @@ using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+
+using static Axis.Luna.Extensions.EnumerableExtensions;
 
 namespace Sample.Core
 {
@@ -71,7 +74,7 @@ namespace Sample.Core
                 Console.WriteLine("An error occured!\n" + opr.GetException().FlattenMessage("\n"));
             });
 
-        public static void Main(string[] args)
+        public static void Mainxx(string[] args)
         {
             new XYContext("server=(local);database=XYTest;integrated security=False;user id=sa;password=developer;multipleactiveresultsets=True").Using(context =>
             {
@@ -92,6 +95,86 @@ namespace Sample.Core
                 x.Ys.Add(new Y());
                 x.Ys.Add(new Y());
                 context.SaveChanges();
+            });
+        }
+
+        public static void Main(string[] arg)
+        {
+            var config =
+                new ContextConfiguration<EuropaContext>()
+                //new ContextConfiguration<Context>()
+                .WithConnection("server=(local);database=EuropaTest;integrated security=False;user id=sa;password=developer;multipleactiveresultsets=True;")
+                .WithEFConfiguraton(x =>
+                {
+                    x.LazyLoadingEnabled = false;
+                })
+                .WithInitializer(new DropCreateDatabaseIfModelChanges<EuropaContext>())
+                .UsingModule(new ModuleConfig());
+
+            //new EuropaContext(config).Using(cxt =>
+            //{
+            //    var p = new Person
+            //    {
+            //        DateOfBirth = DateTime.Now,
+            //        FirstName = "daf",
+            //        LastName = "ogbobus",
+            //        ContactInfo = new HashSet<Contact>(Enumerate(new Contact
+            //        {
+            //            Address = "dae",
+            //            Email = "something.other@x.y",
+            //            Phone = "dlfkr43",
+            //            Web = new WebSite
+            //            {
+            //                Host = "",
+            //                Page = ""
+            //            }
+            //        }))
+            //    };
+
+            //    cxt.Store<Person>().Add(p).Context.CommitChanges();
+            //});
+
+            new EuropaContext(config).Using(cxt =>
+            {
+                var p = cxt.Store<Person>().Query.FirstOrDefault();
+                var c = cxt.Store<Contact>().Query.FirstOrDefault();
+                var q = cxt.Store<Person>().Query;
+
+                var tar = new[]
+                {
+                    Task.Run(() =>
+                    {
+                        var r = new Random();
+                        for(int cnt=0;cnt<1000;cnt++)
+                        {
+                            var _next = r.Next();
+                            var _users = q.Where(_u => _next == _u.Id);
+                            Console.WriteLine("1 - "+_users?.GetHashCode());
+                            var count = _users.Count();
+                            if(count>0)Console.WriteLine(count);
+                        }
+                        Console.WriteLine("task 1 ended");
+                    }),
+                    Task.Run(() =>
+                    {
+                        var r = new Random();
+                        for(int cnt=0;cnt<1000;cnt++)
+                        {
+                            var _next = r.Next();
+                            var _users = q.Where(_u => _next == _u.Id);
+                            Console.WriteLine("2 - "+_users?.GetHashCode());
+                            var count = _users.Count();
+                            if(count>0)Console.WriteLine(count);
+                        }
+                        Console.WriteLine("task 2 ended");
+                    })
+                };
+
+                Task.WaitAll(tar);
+
+                c.Address = "anywhere";
+                cxt.Modify(c);
+                cxt.CommitChanges();
             });
         }
     }
