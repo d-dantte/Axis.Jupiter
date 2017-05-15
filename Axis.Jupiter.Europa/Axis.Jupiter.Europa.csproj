@@ -53,6 +53,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BulkCopyPayload.cs" />
     <Compile Include="ContextConfiguration.cs" />
     <Compile Include="DataStore.cs" />
     <Compile Include="Extensions.cs" />
