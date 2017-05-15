@@ -2,18 +2,12 @@
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Axis.Jupiter.Europa.Module
 {
     public interface IModuleConfigProvider
     {
         string ModuleName { get; }
-
-        IEnumerable<KeyValuePair<Type, dynamic>> StoreQueryGenerators { get; }
-        IEnumerable<KeyValuePair<string, dynamic>> ContextQueryGenerators { get; }
 
         /// <summary>
         /// Adds a new EntityTypeConfiguratin to the underlying provider's list of configurations for the specified entity type, or replaces the old one.
@@ -24,12 +18,20 @@ namespace Axis.Jupiter.Europa.Module
         IModuleConfigProvider UsingConfiguration<Entity>(EntityTypeConfiguration<Entity> configuration) where Entity : class;
 
         /// <summary>
-        /// 
+        /// Adds a new ComplexTypeConfiguratin to the underlying provider's list of configurations for the specified entity type, or replaces the old one.
+        /// </summary>
+        /// <typeparam name="Entity"></typeparam>
+        /// <param name="configuration"></param>
+        /// <returns></returns>
+        IModuleConfigProvider UsingConfiguration<Entity>(ComplexTypeConfiguration<Entity> configuration) where Entity : class;
+
+        /// <summary>
+        /// Accepts an action that attempts to seed the database with data - or persorm any other action on the database
         /// </summary>
         /// <typeparam name="Entity"></typeparam>
         /// <param name="seeder"></param>
         /// <returns></returns>
-        IModuleConfigProvider UsingEntitySeed<Entity>(Action<ObjectStore<Entity>> seeder) where Entity: class;
+        IModuleConfigProvider WithContextAction(Action<DataStore> seeder);
 
         /// <summary>
         /// Configuration that doesnt specifically belong to any entity here
@@ -41,7 +43,7 @@ namespace Axis.Jupiter.Europa.Module
         IEnumerable<Type> ConfiguredTypes();
 
         void ConfigureContext(DbModelBuilder modelBuilder);
-        void InitializeContext(EuropaContext context);
+        void InitializeContext(DataStore context);
 
         /// <summary>
         /// Stops this module config provider from further accepting modifications. Can be called multiple times, but only the 

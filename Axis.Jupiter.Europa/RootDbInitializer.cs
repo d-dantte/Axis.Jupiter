@@ -1,27 +1,26 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System.Collections.Concurrent;
 using System.Data.Entity;
 
 namespace Axis.Jupiter.Europa
 {
-    public class RootDbInitializer<Context>: IDatabaseInitializer<Context>
-    where Context : EuropaContext
+    public class RootDbInitializer: IDatabaseInitializer<DataStore>
     {
-        internal IDatabaseInitializer<Context> Initializer { get; private set; }
-        private Action<Context> _aggregatedAction { get; set; }
+        private ConcurrentDictionary<DataStore, IDatabaseInitializer<DataStore>> _registeredInitializers = new ConcurrentDictionary<DataStore, IDatabaseInitializer<DataStore>>();
 
-        internal RootDbInitializer(IDatabaseInitializer<Context> initializer, Action<Context> aggregatedContextAction)
+
+        internal void RegisterInstanceInitializer(DataStore storeInstance, IDatabaseInitializer<DataStore> instanceInitializer)
+        => _registeredInitializers.GetOrAdd(storeInstance, _instance => instanceInitializer);
+
+        public void InitializeDatabase(DataStore context)
         {
-            Initializer = initializer;
-            _aggregatedAction = aggregatedContextAction;
-        }
+            IDatabaseInitializer<DataStore> initializer;
+            _registeredInitializers.TryGetValue(context, out initializer).ThrowIf(_ => _, "The context has no registered initializers");
 
-        public void InitializeDatabase(Context context)
-        {
-            //initialize the db
-            Initializer?.InitializeDatabase(context);
+            initializer?.InitializeDatabase(context);
 
-            //seed the db
-            _aggregatedAction?.Invoke(context);
+            //module initializations
+            context.ContextConfig.ConfiguredModules.ForAll(module => module.InitializeContext(context));
             context.SaveChanges();
         }
     }

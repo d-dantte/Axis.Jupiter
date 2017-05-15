@@ -50,12 +50,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Axis.Jupiter\Axis.Jupiter.csproj">
-      <Project>{0184cfb2-ea0b-4ba1-9ecf-5fcbd7c4d964}</Project>
-      <Name>Axis.Jupiter</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Folder Include="Query\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
