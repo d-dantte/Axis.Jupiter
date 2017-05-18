@@ -1,17 +1,18 @@
 ﻿using Axis.Luna.Operation;
+using System;
 using System.Collections.Generic;
 
 namespace Axis.Jupiter.Kore.Commands
 {
-    public interface IPersistenceCommands
+    public interface IPersistenceCommands: IDisposable
     {
-        IOperation<Domain> Add<Domain>(Domain d) where Domain : class;
-        IOperation<IEnumerable<Domain>> AddBatch<Domain>(IEnumerable<Domain> d) where Domain : class;
+        IOperation<Entity> Add<Entity>(Entity d) where Entity : class;
+        IOperation<IEnumerable<Entity>> AddBatch<Entity>(IEnumerable<Entity> d) where Entity : class;
 
-        IOperation<Domain> Update<Domain>(Domain d) where Domain : class;
-        IOperation<IEnumerable<Domain>> UpdateBatch<Domain>(IEnumerable<Domain> d) where Domain : class;
+        IOperation<Entity> Update<Entity>(Entity d, Action<Entity> copyFunction = null) where Entity : class;
+        IOperation<IEnumerable<Entity>> UpdateBatch<Entity>(IEnumerable<Entity> d, Action<Entity> copyFunction = null) where Entity : class;
 
-        IOperation<Domain> Delete<Domain>(Domain d) where Domain : class;
-        IOperation<Domain> DeleteBatch<Domain>(IEnumerable<Domain> d) where Domain : class;
+        IOperation<Entity> Delete<Entity>(Entity d) where Entity : class;
+        IOperation<IEnumerable<Entity>> DeleteBatch<Entity>(IEnumerable<Entity> d) where Entity : class;
     }
 }

@@ -30,8 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Axis.Luna, Version=3.0.4.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Axis.Luna.3.0.4\lib\net452\Axis.Luna.dll</HintPath>
+    <Reference Include="Axis.Luna, Version=3.0.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Axis.Luna.3.0.5\lib\net452\Axis.Luna.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
@@ -53,7 +53,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BulkCopyPayload.cs" />
+    <Compile Include="BulkCopyOperation.cs" />
     <Compile Include="ContextConfiguration.cs" />
     <Compile Include="DataStore.cs" />
     <Compile Include="Extensions.cs" />

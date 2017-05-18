@@ -15,7 +15,7 @@ namespace Axis.Jupiter.Europa
         public void InitializeDatabase(DataStore context)
         {
             IDatabaseInitializer<DataStore> initializer;
-            _registeredInitializers.TryGetValue(context, out initializer).ThrowIf(_ => _, "The context has no registered initializers");
+            _registeredInitializers.TryGetValue(context, out initializer).ThrowIf(_ => !_, "The context has no registered initializers");
 
             initializer?.InitializeDatabase(context);
 

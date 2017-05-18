@@ -42,15 +42,12 @@ namespace Axis.Jupiter.Europa.Module
 
         IEnumerable<Type> ConfiguredTypes();
 
-        void ConfigureContext(DbModelBuilder modelBuilder);
+        void BuildModel(DbModelBuilder modelBuilder);
         void InitializeContext(DataStore context);
 
         /// <summary>
-        /// Stops this module config provider from further accepting modifications. Can be called multiple times, but only the 
-        /// first call has any effect
+        /// Determines if this config provider can accept changes to itself or not
         /// </summary>
-        void Lock();
-
         bool IsLocked { get; }
     }
 }

@@ -44,21 +44,21 @@ namespace Axis.Jupiter.Europa.Utils
                          .MetadataProperties
                          .FirstOrDefault(_mdp => _mdp.Name == "http://schemas.microsoft.com/ado/2013/11/edm/customannotation:ClrType")
                          .Value
-                         .As<Type>();
+                         .Cast<Type>();
                  
                      return new TypeModel
                      {
                          ClrType = clrType,
                          MappedTable =  _ef.StoreEntitySet.Table,
-                         Properties = _ef.PropertyMappings.Where(_pm => _pm.Is<ScalarPropertyMapping>()).Select(_pm =>
+                         Properties = _ef.PropertyMappings.Where(_pm => _pm is ScalarPropertyMapping ).Select(_pm =>
                          {
-                             var column = _pm.As<ScalarPropertyMapping>().Column;
+                             var column = _pm.Cast<ScalarPropertyMapping>().Column;
                              return new PropertyModel
                              {
                                  ClrProperty = clrType.GetProperty(_pm.Property.Name),
                                  MappedProperty = column.Name,
                                  Key = column.IsStoreGeneratedIdentity ? PropertyModel.KeyMode.StoreGenerated :
-                                       column.DeclaringType.As<EntityType>().KeyProperties.Contains(column) ? PropertyModel.KeyMode.SourceGenerated :
+                                       column.DeclaringType.Cast<EntityType>().KeyProperties.Contains(column) ? PropertyModel.KeyMode.SourceGenerated :
                                        PropertyModel.KeyMode.None
                              };
                          })
@@ -107,7 +107,7 @@ namespace Axis.Jupiter.Europa.Utils
 
 
         public override bool Equals(object obj)
-            => obj.As<PropertyModel>().Pipe(_pm => _pm?.ClrProperty == ClrProperty && 
+            => obj.Cast<PropertyModel>().Pipe(_pm => _pm?.ClrProperty == ClrProperty && 
                                                    _pm?.MappedProperty == MappedProperty);
         public override int GetHashCode() => this.PropertyHash();
     }

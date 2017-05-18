@@ -16,13 +16,13 @@ namespace Axis.Jupiter.Europa.Module
         private List<Action<DataStore>> _contextActions { get; set; } = new List<Action<DataStore>>();
         private List<Action<DbModelBuilder>> _modelBuilderActions { get; set; } = new List<Action<DbModelBuilder>>();
 
-        public string ModuleName { get; set; }
+        public string ModuleName { get; private set; }
         public bool IsLocked { get; private set; }
         #endregion
 
         #region Methods
 
-        public void Lock() => IsLocked = true;
+        private void Lock() => IsLocked = true;
 
         public IEnumerable<Type> ConfiguredTypes() => _entityConfigs.Keys.ToArray();
 
@@ -41,14 +41,16 @@ namespace Axis.Jupiter.Europa.Module
         /// Called during DbContext.OnModelCreating
         /// </summary>
         /// <param name="modelBuilder"></param>
-        public void ConfigureContext(DbModelBuilder modelBuilder) => Try(() =>
+        public void BuildModel(DbModelBuilder modelBuilder)
         {
+            Lock();
+
            //do general configurations
            _modelBuilderActions.ForEach(_mba => _mba.Invoke(modelBuilder));
 
            //do entity specific configurations
            _entityConfigs.Values.ForAll(next => modelBuilder.Configurations.Add(next));
-        });
+        }
 
         /// <summary>
         /// Called by DataStore upon initialization
@@ -56,6 +58,8 @@ namespace Axis.Jupiter.Europa.Module
         /// <param name="context"></param>
         public void InitializeContext(DataStore context)
         {
+            Lock();
+
             //run context actions first
             _contextActions.ForAll((cnt, next) => next.Invoke(context));
         }
@@ -69,5 +73,12 @@ namespace Axis.Jupiter.Europa.Module
         }
 
         #endregion
+        
+        public ModuleConfigProvider(string name = null)
+        {
+            ModuleName = string.IsNullOrWhiteSpace(name) ? 
+                         Guid.NewGuid().ToString() :
+                         name;
+        }
     }
 }
