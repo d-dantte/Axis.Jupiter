@@ -1,0 +1,12 @@
+
+3.0.x ===============================================================================
+
+0.	Entity Persister implementation
+
+    Implement crude version of Bulk Operations
+
+
+3.1.x ===============================================================================
+
+0.	Integrate Z.EntityFramework.Extension's BulkOperation methods for our Bulk 
+    PersistenceCommands.

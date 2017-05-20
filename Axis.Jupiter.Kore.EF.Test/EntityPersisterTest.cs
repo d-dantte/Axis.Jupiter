@@ -115,18 +115,6 @@ namespace Axis.Jupiter.Kore.EF.Test
                 var start = DateTime.Now;
                 var resolved = persister.AddBatch(objects).Resolve();
                 Console.WriteLine($"Inserted in {DateTime.Now - start}");
-
-                //delete bulk
-                start = DateTime.Now;
-                resolved = persister.DeleteBatch(objects).Resolve();
-                Console.WriteLine($"Deleted in {DateTime.Now - start}");
-
-                //make sure it's deleted
-                objects.ForEach(_obj =>
-                {
-                    Assert.IsFalse(store.Set<SomeClass>().Any(_x => _x.Id == _obj.Id));
-                });
-
             }
         }
 
@@ -149,16 +137,17 @@ namespace Axis.Jupiter.Kore.EF.Test
             {
                 //delete single
                 var obj = new SomeClass { Id = 1 };
-                var op = ResolvedOp.Try(() => persister.Delete(obj));
+                //var op = ResolvedOp.Try(() => persister.Delete(obj));
                 
-                Assert.AreEqual(1, op.Resolve().Id);
+                //Assert.AreEqual(1, op.Resolve().Id);
 
 
                 //bulk
-                for (int cnt = 10000; cnt < 20000; cnt++) objects.Add(new SomeClass { Id = cnt });
+                for (int cnt = 40000; cnt < 50000; cnt++) objects.Add(new SomeClass { Id = cnt });
                 var _op = ResolvedOp.Try(() => persister.DeleteBatch(objects));
 
-                Assert.AreEqual(true, _op.Succeeded);
+                //Assert.AreEqual(true, _op.Succeeded);
+                if (_op.Succeeded == false) throw _op.GetException();
             }
         }
     }

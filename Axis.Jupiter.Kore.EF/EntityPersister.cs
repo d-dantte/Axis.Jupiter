@@ -57,18 +57,28 @@ namespace Axis.Jupiter.Kore.EF
         public IOperation<IEnumerable<Entity>> DeleteBatch<Entity>(IEnumerable<Entity> entities)
         where Entity : class => LazyOp.Try(() =>
         {
-            var set = _dataStore.Set<Entity>();
-            var deletedEntities = entities
-                .Select(_entity =>
-                {
-                    var local = GetLocally(set, _entity);
-                    if (local == null) return set.Attach(_entity);
-                    else return local;
-                })
-                .Pipe(set.RemoveRange);
-
-            _dataStore.SaveChanges();
-            return deletedEntities;
+            var entitiesAreBeignTracked = _dataStore.Configuration.AutoDetectChangesEnabled;
+            _dataStore.Configuration.AutoDetectChangesEnabled = false; //<-- to improve performance for batch operations
+            try
+            {
+                var set = _dataStore.Set<Entity>();
+                var start = DateTime.Now;
+                var deletedEntities = entities
+                    .Select(_entity =>
+                    {
+                        var local = GetLocally(set, _entity);
+                        if (local == null) return set.Attach(_entity);
+                        else return local;
+                    })
+                    .Pipe(set.RemoveRange);
+                
+                _dataStore.SaveChanges();
+                return deletedEntities;
+            }
+            finally
+            {
+                _dataStore.Configuration.AutoDetectChangesEnabled = entitiesAreBeignTracked;
+            }
         });
         #endregion
 
@@ -83,10 +93,19 @@ namespace Axis.Jupiter.Kore.EF
         public IOperation<IEnumerable<Entity>> UpdateBatch<Entity>(IEnumerable<Entity> sequence, Action<Entity> copyFunction = null)
         where Entity : class => LazyOp.Try(() =>
         {
-            return sequence
-                .Select(_entity => UpdateEntity(_entity, copyFunction).Resolve())
-                .ToList() //forces evaluation of the IEnumerable
-                .UsingValue(_list =>  _dataStore.SaveChanges());
+            var entitiesAreBeignTracked = _dataStore.Configuration.AutoDetectChangesEnabled;
+            _dataStore.Configuration.AutoDetectChangesEnabled = false; //<-- to improve performance for batch operations
+            try
+            {
+                return sequence
+                    .Select(_entity => UpdateEntity(_entity, copyFunction).Resolve())
+                    .ToList() //forces evaluation of the IEnumerable
+                    .UsingValue(_list => _dataStore.SaveChanges());
+            }
+            finally
+            {
+                _dataStore.Configuration.AutoDetectChangesEnabled = entitiesAreBeignTracked;
+            }
         });
 
         private IOperation<Entity> UpdateEntity<Entity>(Entity entity, Action<Entity> copyFunction)

@@ -10,6 +10,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.Europa", "Axis.Jupiter.Europa\Axis.Jupiter.Europa.csproj", "{327C01D9-0ABD-4B87-A75B-2AE9C026CFEA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D3CD01A2-5EEE-45BF-BB42-D84EEA9F806D}"
+	ProjectSection(SolutionItems) = preProject
+		RELEASE.txt = RELEASE.txt
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jupiter.Kore", "Jupiter.Kore", "{D9DFA5E3-B90E-4757-A97E-C32C6A527637}"
 EndProject
