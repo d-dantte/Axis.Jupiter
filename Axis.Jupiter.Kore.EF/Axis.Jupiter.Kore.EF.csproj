@@ -30,14 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Axis.Jupiter.Europa, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Axis.Jupiter.Europa.3.0.0\lib\net452\Axis.Jupiter.Europa.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Axis.Jupiter.Kore, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Axis.Jupiter.Kore.3.0.0\lib\net452\Axis.Jupiter.Kore.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Axis.Luna, Version=3.0.6.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Axis.Luna.3.0.6\lib\net452\Axis.Luna.dll</HintPath>
       <Private>True</Private>
