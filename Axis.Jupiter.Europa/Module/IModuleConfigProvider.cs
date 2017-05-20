@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Jupiter.Europa.Mappings;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration;
@@ -12,18 +13,24 @@ namespace Axis.Jupiter.Europa.Module
         /// <summary>
         /// Adds a new EntityTypeConfiguratin to the underlying provider's list of configurations for the specified entity type, or replaces the old one.
         /// </summary>
+        /// <typeparam name="Model"></typeparam>
         /// <typeparam name="Entity"></typeparam>
         /// <param name="configuration"></param>
         /// <returns></returns>
-        IModuleConfigProvider UsingConfiguration<Entity>(EntityTypeConfiguration<Entity> configuration) where Entity : class;
+        IModuleConfigProvider UsingConfiguration<Model, Entity>(BaseEntityMapConfig<Model, Entity> configuration)
+        where Model : class
+        where Entity : class, Model, new();
 
         /// <summary>
         /// Adds a new ComplexTypeConfiguratin to the underlying provider's list of configurations for the specified entity type, or replaces the old one.
         /// </summary>
+        /// <typeparam name="Model"></typeparam>
         /// <typeparam name="Entity"></typeparam>
         /// <param name="configuration"></param>
         /// <returns></returns>
-        IModuleConfigProvider UsingConfiguration<Entity>(ComplexTypeConfiguration<Entity> configuration) where Entity : class;
+        IModuleConfigProvider UsingConfiguration<Model, Entity>(BaseComplexMapConfig<Model, Entity> configuration)
+        where Model : class
+        where Entity : class, Model, new();
 
         /// <summary>
         /// Accepts an action that attempts to seed the database with data - or persorm any other action on the database
@@ -41,6 +48,7 @@ namespace Axis.Jupiter.Europa.Module
         IModuleConfigProvider UsingModelBuilder(Action<DbModelBuilder> action);
 
         IEnumerable<Type> ConfiguredTypes();
+        IEnumerable<IEntityMapConfiguration> ConfiguredEntityMaps();
 
         void BuildModel(DbModelBuilder modelBuilder);
         void InitializeContext(DataStore context);

@@ -31,6 +31,8 @@ namespace Axis.Jupiter.Europa
         public static bool IsComplexMap(this Type t)
         => GetBaseComplexMap(t).Pipe(bt => bt != null && bt != t && !t.IsInterface && !t.IsAbstract && !t.IsGenericType);
 
+        public static bool IsReflexive(this IEntityMapConfiguration mapConfig) => mapConfig.EntityType.Equals(mapConfig.ModelType);
+
 
         #region private stuff
         internal static bool PropertiesAreEquivalent(PropertyInfo first, PropertyInfo second)

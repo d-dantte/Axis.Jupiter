@@ -1,0 +1,5 @@
+﻿
+3.1.0/features ==================================================================================
+-	Ability to configure Target and Storage Entities. Target entities are those coming from the domain side,
+    StorageEntities are essentially the sqlserver optimized version of the domain entity; they typically
+	contain things like foreign keys, primary keys, indexes, etc, that are not on the domain entity. [Done]

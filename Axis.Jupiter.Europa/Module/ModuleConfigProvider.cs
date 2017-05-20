@@ -3,16 +3,16 @@ using static Axis.Luna.Extensions.EnumerableExtensions;
 
 using System;
 using System.Collections.Generic;
-using System.Data.Entity.ModelConfiguration;
 using System.Data.Entity;
 using System.Linq;
+using Axis.Jupiter.Europa.Mappings;
 
 namespace Axis.Jupiter.Europa.Module
 {
     public class ModuleConfigProvider : IModuleConfigProvider
     {
         #region Properties
-        private Dictionary<Type, dynamic> _entityConfigs { get; set; } = new Dictionary<Type, dynamic>();
+        private Dictionary<Type, IEntityMapConfiguration> _entityConfigs { get; set; } = new Dictionary<Type, IEntityMapConfiguration>();
         private List<Action<DataStore>> _contextActions { get; set; } = new List<Action<DataStore>>();
         private List<Action<DbModelBuilder>> _modelBuilderActions { get; set; } = new List<Action<DbModelBuilder>>();
 
@@ -26,13 +26,15 @@ namespace Axis.Jupiter.Europa.Module
 
         public IEnumerable<Type> ConfiguredTypes() => _entityConfigs.Keys.ToArray();
 
+        public IEnumerable<IEntityMapConfiguration> ConfiguredEntityMaps() => _entityConfigs.Values.ToArray();
+
         public IModuleConfigProvider UsingModelBuilder(Action<DbModelBuilder> action)
         => Try(() => _modelBuilderActions.Add(action.ThrowIfNull()));
 
-        public IModuleConfigProvider UsingConfiguration<Entity>(EntityTypeConfiguration<Entity> configuration)
-        where Entity : class => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
-        public IModuleConfigProvider UsingConfiguration<Entity>(ComplexTypeConfiguration<Entity> configuration)
-        where Entity : class => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
+        public IModuleConfigProvider UsingConfiguration<Model, Entity>(BaseEntityMapConfig<Model, Entity> configuration)
+        where Model : class where Entity : class, Model, new() => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
+        public IModuleConfigProvider UsingConfiguration<Model, Entity>(BaseComplexMapConfig<Model, Entity> configuration)
+        where Model : class where Entity : class, Model, new() => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
 
         public IModuleConfigProvider WithContextAction(Action<DataStore> contextAction)
         => Try(() => _contextActions.Add(contextAction.ThrowIfNull()));
@@ -49,7 +51,7 @@ namespace Axis.Jupiter.Europa.Module
            _modelBuilderActions.ForEach(_mba => _mba.Invoke(modelBuilder));
 
            //do entity specific configurations
-           _entityConfigs.Values.ForAll(next => modelBuilder.Configurations.Add(next));
+           _entityConfigs.Values.ForAll(next => modelBuilder.Configurations.Add(next as dynamic));
         }
 
         /// <summary>
@@ -73,7 +75,7 @@ namespace Axis.Jupiter.Europa.Module
         }
 
         #endregion
-        
+
         public ModuleConfigProvider(string name = null)
         {
             ModuleName = string.IsNullOrWhiteSpace(name) ? 
