@@ -2,11 +2,12 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration;
-using System.Data.SqlClient;
 using Axis.Jupiter.Europa.Module;
 using Axis.Jupiter.Europa;
 using System.Collections.Generic;
 using Axis.Luna;
+using System.Linq;
+using Axis.Luna.Operation;
 
 namespace Axis.Jupiter.Kore.EF.Test
 {
@@ -85,7 +86,7 @@ namespace Axis.Jupiter.Kore.EF.Test
         }
 
         [TestMethod]
-        public void BulkInsertTest()
+        public void BulkInsert()
         {
             var cstring = "Data Source=(local);Initial Catalog=Kore_EF_Test;User ID=sa;Password=developer;MultipleActiveResultSets=True;App=EntityFramework";
 
@@ -97,10 +98,11 @@ namespace Axis.Jupiter.Kore.EF.Test
                 .WithConnection(cstring)
                 .WithInitializer(new DropCreateDatabaseIfModelChanges<DataStore>());
 
-            using (var persister = new EntityPersister(new DataStore(contextConfig)))
+            var objects = new List<SomeClass>();
+            var store = new DataStore(contextConfig);
+            using (var persister = new EntityPersister(store))
             {
                 //generate objects to insert
-                var objects = new List<SomeClass>();
                 for (int cnt = 0; cnt < 10000; cnt++)
                 {
                     objects.Add(new SomeClass
@@ -112,7 +114,51 @@ namespace Axis.Jupiter.Kore.EF.Test
                 //persist them in bulk
                 var start = DateTime.Now;
                 var resolved = persister.AddBatch(objects).Resolve();
-                Console.WriteLine($"Executed in {DateTime.Now - start}");
+                Console.WriteLine($"Inserted in {DateTime.Now - start}");
+
+                //delete bulk
+                start = DateTime.Now;
+                resolved = persister.DeleteBatch(objects).Resolve();
+                Console.WriteLine($"Deleted in {DateTime.Now - start}");
+
+                //make sure it's deleted
+                objects.ForEach(_obj =>
+                {
+                    Assert.IsFalse(store.Set<SomeClass>().Any(_x => _x.Id == _obj.Id));
+                });
+
+            }
+        }
+
+        [TestMethod]
+        public void DeleteTest()
+        {
+            var cstring = "Data Source=(local);Initial Catalog=Kore_EF_Test;User ID=sa;Password=developer;MultipleActiveResultSets=True;App=EntityFramework";
+
+            var moduleConfig = new ModuleConfigProvider();
+            moduleConfig.UsingConfiguration(new EntityTypeConfiguration<SomeClass>());
+
+            var contextConfig = new ContextConfiguration<DataStore>()
+                .UsingModule(moduleConfig)
+                .WithConnection(cstring)
+                .WithInitializer(new DropCreateDatabaseIfModelChanges<DataStore>());
+
+            var objects = new List<SomeClass>();
+            var store = new DataStore(contextConfig);
+            using (var persister = new EntityPersister(store))
+            {
+                //delete single
+                var obj = new SomeClass { Id = 1 };
+                var op = ResolvedOp.Try(() => persister.Delete(obj));
+                
+                Assert.AreEqual(1, op.Resolve().Id);
+
+
+                //bulk
+                for (int cnt = 10000; cnt < 20000; cnt++) objects.Add(new SomeClass { Id = cnt });
+                var _op = ResolvedOp.Try(() => persister.DeleteBatch(objects));
+
+                Assert.AreEqual(true, _op.Succeeded);
             }
         }
     }

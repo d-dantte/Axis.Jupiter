@@ -44,7 +44,12 @@ namespace Axis.Jupiter.Kore.EF
         public IOperation<Entity> Delete<Entity>(Entity d)
         where Entity : class => LazyOp.Try(() =>
         {
-            d = _dataStore.Set<Entity>().Remove(d);
+            var set = _dataStore.Set<Entity>();
+            var local = GetLocally(set, d);
+            if (local == null) d = set.Attach(d);
+            else d = local;
+
+            d = set.Remove(d);
             _dataStore.SaveChanges();
             return d;
         });
@@ -52,7 +57,16 @@ namespace Axis.Jupiter.Kore.EF
         public IOperation<IEnumerable<Entity>> DeleteBatch<Entity>(IEnumerable<Entity> entities)
         where Entity : class => LazyOp.Try(() =>
         {
-            var deletedEntities =_dataStore.Set<Entity>().RemoveRange(entities);
+            var set = _dataStore.Set<Entity>();
+            var deletedEntities = entities
+                .Select(_entity =>
+                {
+                    var local = GetLocally(set, _entity);
+                    if (local == null) return set.Attach(_entity);
+                    else return local;
+                })
+                .Pipe(set.RemoveRange);
+
             _dataStore.SaveChanges();
             return deletedEntities;
         });
@@ -78,21 +92,8 @@ namespace Axis.Jupiter.Kore.EF
         private IOperation<Entity> UpdateEntity<Entity>(Entity entity, Action<Entity> copyFunction)
         where Entity : class => LazyOp.Try(() =>
         {
-            //get the object keys. This CAN be cached, but SHOULD it be?
-            var keys = _dataStore
-                .MappingFor<Entity>()
-                .Properties
-                .Where(_p => _p.IsKey)
-                .Select(_p => _p.ClrProperty.Name.ValuePair(entity.PropertyValue(_p.ClrProperty.Name)));
-
             var set = _dataStore.Set<Entity>();
-
-            //find the entity locally
-            var local = set.Local.FirstOrDefault(_e =>
-            {
-                return keys.Select(_k => _e.PropertyValue(_k.Key))
-                           .SequenceEqual(keys.Select(_k => _k.Value));
-            });
+            var local = GetLocally(set, entity);
 
             //if the entity was found locally, apply the copy function or copy from the supplied object
             if (local != null)
@@ -110,6 +111,24 @@ namespace Axis.Jupiter.Kore.EF
             return entity;
         });
         #endregion
+
+        private Entity GetLocally<Entity>(DbSet<Entity> set, Entity entity)
+        where Entity: class
+        {
+            //get the object keys. This CAN be cached, but SHOULD it be?
+            var keys = _dataStore
+                .MappingFor<Entity>()
+                .Properties
+                .Where(_p => _p.IsKey)
+                .Select(_p => _p.ClrProperty.Name.ValuePair(entity.PropertyValue(_p.ClrProperty.Name)));
+
+            //find the entity locally
+            return set.Local.FirstOrDefault(_e =>
+            {
+                return keys.Select(_k => _e.PropertyValue(_k.Key))
+                           .SequenceEqual(keys.Select(_k => _k.Value));
+            });
+        }
 
         
         public void Dispose()

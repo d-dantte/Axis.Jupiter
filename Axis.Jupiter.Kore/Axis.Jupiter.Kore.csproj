@@ -30,8 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Axis.Luna, Version=3.0.5.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Axis.Luna.3.0.5\lib\net452\Axis.Luna.dll</HintPath>
+    <Reference Include="Axis.Luna, Version=3.0.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Axis.Luna.3.0.6\lib\net452\Axis.Luna.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
