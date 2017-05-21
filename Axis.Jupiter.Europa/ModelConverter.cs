@@ -31,7 +31,7 @@ namespace Axis.Jupiter.Europa
                     _conversionContext.Add(model, entity);
 
                     //map the entity
-                    mapConfig.ModelToEntity.Invoke(this, model, entity);
+                    mapConfig.ModelToEntityMapper(this, model, entity);
                 }
 
                 return _conversionContext[model];
@@ -50,7 +50,7 @@ namespace Axis.Jupiter.Europa
                     _conversionContext.Add(entity, entity);
 
                     //map the entity
-                    mapConfig.EntityToModel.Invoke(this, entity);
+                    mapConfig.EntityToModelMapper(this, entity);
                 }
 
                 return (Model)entity;

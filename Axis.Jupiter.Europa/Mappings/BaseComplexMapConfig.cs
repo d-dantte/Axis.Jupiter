@@ -7,21 +7,19 @@ namespace Axis.Jupiter.Europa.Mappings
     where Model : class
     where Entity : class, Model, new()
     {
-        protected BaseComplexMapConfig(MapVector<Model, Entity> mapper = null)
+        protected BaseComplexMapConfig()
         {
-            if (mapper == null && !this.IsReflexive()) throw new Exception("A mapper function must be supplied for non-reflexive MapConfigurations");
-            else if (mapper != null && !mapper.IsValid()) throw new Exception("Invalid MapVector");
-            else
-            {
-                ModelToEntity = (ModelConverter _converter, object _model, object _entity) => mapper.ModelToEntity(_converter, (Model)_model, (Entity)_entity);
-                EntityToModel = (ModelConverter _converter, object _entity) => mapper.EntityToModel(_converter, (Entity)_entity);
-            }
         }
+
 
         public Type EntityType { get; } = typeof(Entity);
         public Type ModelType { get; } = typeof(Model);
 
-        public Action<ModelConverter, object> EntityToModel { get; private set; }
-        public Action<ModelConverter, object, object> ModelToEntity { get; private set; }
+
+        void IEntityMapConfiguration.EntityToModelMapper(ModelConverter converter, object entity) => EntityToModel(converter, (Entity)entity);
+        void IEntityMapConfiguration.ModelToEntityMapper(ModelConverter converter, object model, object entity) => ModelToEntity(converter, (Model)model, (Entity)entity);
+
+        public abstract void EntityToModel(ModelConverter converter, Entity entity);
+        public abstract void ModelToEntity(ModelConverter converter, Model model, Entity entity);
     }
 }

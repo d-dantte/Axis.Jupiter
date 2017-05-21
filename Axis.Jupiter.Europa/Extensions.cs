@@ -31,9 +31,6 @@ namespace Axis.Jupiter.Europa
         public static bool IsComplexMap(this Type t)
         => GetBaseComplexMap(t).Pipe(bt => bt != null && bt != t && !t.IsInterface && !t.IsAbstract && !t.IsGenericType);
 
-        public static bool IsReflexive(this IEntityMapConfiguration mapConfig) => mapConfig.EntityType.Equals(mapConfig.ModelType);
-
-
         #region private stuff
         internal static bool PropertiesAreEquivalent(PropertyInfo first, PropertyInfo second)
         => first.Name == second.Name &&
@@ -43,13 +40,13 @@ namespace Axis.Jupiter.Europa
         public static Type BaseMapType(this Type t) => GetBaseMap(t)?.GetGenericArguments().First();
 
         public static Type GetBaseMap(Type t)
-        => typeof(BaseMap<>).Pipe(bmt => t.BaseTypes().FirstOrDefault(type => type.IsGenericType && type.GetGenericTypeDefinition() == bmt));
+        => typeof(BaseEntityMapConfig<,>).Pipe(bmt => t.BaseTypes().FirstOrDefault(type => type.IsGenericType && type.GetGenericTypeDefinition() == bmt));
 
         public static Type BaseComplexMapType(this Type t) => GetBaseComplexMap(t)?.GetGenericArguments().First();
 
         public static Type GetBaseComplexMap(Type t)
         {
-            var bcmt = typeof(BaseComplexMap<>);
+            var bcmt = typeof(BaseComplexMapConfig<,>);
             var bt = t.BaseTypes().FirstOrDefault(type => type.IsGenericType && type.GetGenericTypeDefinition() == bcmt);
             return bt;
         }

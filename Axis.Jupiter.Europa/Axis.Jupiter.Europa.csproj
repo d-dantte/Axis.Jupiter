@@ -60,7 +60,6 @@
     <Compile Include="Mappings\BaseEntityMapConfig.cs" />
     <Compile Include="Mappings\BaseComplexMapConfig.cs" />
     <Compile Include="Mappings\IEntityMapConfiguration.cs" />
-    <Compile Include="Mappings\MapVector.cs" />
     <Compile Include="ModelConverter.cs" />
     <Compile Include="Module\ModuleConfigProvider.cs" />
     <Compile Include="Module\IModuleConfigProvider.cs" />

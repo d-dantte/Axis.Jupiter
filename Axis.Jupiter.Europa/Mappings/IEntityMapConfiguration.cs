@@ -2,13 +2,12 @@
 
 namespace Axis.Jupiter.Europa.Mappings
 {
-
-    public interface IEntityMapConfiguration
+    internal interface IEntityMapConfiguration
     {
         Type EntityType { get; }
         Type ModelType { get; }
 
-        Action<ModelConverter, object> EntityToModel { get; }
-        Action<ModelConverter, object, object> ModelToEntity { get; }
+        void EntityToModelMapper(ModelConverter converter, object entity);
+        void ModelToEntityMapper(ModelConverter converter, object model, object entity);
     }
 }
