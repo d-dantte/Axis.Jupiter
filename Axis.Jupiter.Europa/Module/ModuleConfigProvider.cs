@@ -9,7 +9,7 @@ using Axis.Jupiter.Europa.Mappings;
 
 namespace Axis.Jupiter.Europa.Module
 {
-    public class ModuleConfigProvider : IModuleConfigProvider
+    public class ModuleConfigProvider : IModuleConfigProvider, IEntityMapConfigProvider
     {
         #region Properties
         private Dictionary<Type, IEntityMapConfiguration> _entityConfigs { get; set; } = new Dictionary<Type, IEntityMapConfiguration>();
@@ -26,7 +26,7 @@ namespace Axis.Jupiter.Europa.Module
 
         public IEnumerable<Type> ConfiguredTypes() => _entityConfigs.Keys.ToArray();
 
-        public IEnumerable<IEntityMapConfiguration> ConfiguredEntityMaps() => _entityConfigs.Values.ToArray();
+        IEnumerable<IEntityMapConfiguration> IEntityMapConfigProvider.ConfiguredEntityMaps() => _entityConfigs.Values.ToArray();
 
         public IModuleConfigProvider UsingModelBuilder(Action<DbModelBuilder> action)
         => Try(() => _modelBuilderActions.Add(action.ThrowIfNull()));

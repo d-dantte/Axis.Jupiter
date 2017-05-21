@@ -14,7 +14,7 @@ namespace Axis.Jupiter.Europa
 
         public ModelConverter(IEnumerable<IModuleConfigProvider> modules)
         {
-            modules.SelectMany(_next => _next.ConfiguredEntityMaps())
+            modules.SelectMany(_next => (_next as IEntityMapConfigProvider).ConfiguredEntityMaps())
                    .Pipe(_mapConfigCache.AddRange);
         }
 

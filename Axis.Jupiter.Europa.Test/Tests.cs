@@ -6,6 +6,7 @@ using System.Linq;
 using Axis.Luna.Extensions;
 using Axis.Jupiter.Europa.Module;
 using System.Data.Entity;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Axis.Jupiter.Europa.Test
 {
@@ -21,20 +22,35 @@ namespace Axis.Jupiter.Europa.Test
                 .UsingModule(new TestModuleConfig())
                 .WithConnection(cstring)
                 .WithInitializer(new DropCreateDatabaseIfModelChanges<DataStore>());
-
+            
             using (var store = new DataStore(contextConfig))
             {
+                var userSet = store.Set<UserEntity>();
+                var root = userSet.FirstOrDefault();
 
+                var bioSet = store.Set<BioEntity>();
+                var bio = bioSet
+                    .Include(_ => _.Owner)
+                    .FirstOrDefault(_bio => _bio.Owner.UserId == root.UserId)
+                    ?? bioSet.Add(new BioEntity
+                    {
+                        Dob = DateTime.Now,
+                        FirstName = "Root",
+                        LastName = "Admin",
+                        Nationality = "Blue Nowhere",
+                        Owner = root
+                    })
+                    .UsingValue(_ => store.SaveChanges());
             }
         }
     }
 
     #region Models
-    public class Base
+    public abstract class Base
     {
         public Guid UUId { get; set; }
         public DateTime CreatedOn { get; set; }
-
+        
         public string StoreMetadata { get; set; }
 
         public Base()
@@ -56,7 +72,7 @@ namespace Axis.Jupiter.Europa.Test
         public DateTime Dob { get; set; }
         public string Nationality { get; set; }
 
-        public User Owner { get; set; }
+        public virtual User Owner { get; set; }
     }
     public class Contact: Base
     {
@@ -64,7 +80,7 @@ namespace Axis.Jupiter.Europa.Test
         public string Email { get; set; }
         public int Status { get; set; }
 
-        public User Owner { get; set; }
+        public virtual User Owner { get; set; }
     }
     #endregion
 
@@ -77,24 +93,41 @@ namespace Axis.Jupiter.Europa.Test
     public class BioEntity: Bio
     {
         public long StoreId { get; set; }
+
+        private UserEntity _owner;
+        public new UserEntity Owner
+        {
+            get { return _owner; }
+            set { base.Owner = _owner = value; }
+        }
     }
 
     public class ContactEntity: Contact
     {
         public long StoreId { get; set; }
         public string OwnerId { get; set; }
+
+
+        private UserEntity _owner;
+        public new UserEntity Owner
+        {
+            get { return _owner; }
+            set { base.Owner = _owner = value; }
+        }
     }
     #endregion
 
 
     #region Mappings
-    public class UserMapping: BaseEntityMapConfig<User, UserEntity>
+
+    public class UserMapping : BaseEntityMapConfig<User, UserEntity>
     {
         public UserMapping()
         {
             HasKey(m => m.UserId);
-            Property(m => m.UUId).IsIndex("User_UUID", true);
-            Ignore(m => m.StoreMetadata);
+
+            Property(m => m.UUId)
+                .IsIndex("User_UUID", true);
         }
 
         public override void EntityToModel(ModelConverter converter, UserEntity entity)
@@ -112,8 +145,10 @@ namespace Axis.Jupiter.Europa.Test
         public BioMapping()
         {
             HasKey(m => m.StoreId);
-            Property(m => m.UUId).IsIndex("Bio_UUID", true);
-            Ignore(m => m.StoreMetadata);
+
+            Property(m => m.UUId)
+                .IsIndex("Bio_UUID", true);
+
             HasRequired(m => m.Owner)
                 .WithOptional();
         }
@@ -139,8 +174,10 @@ namespace Axis.Jupiter.Europa.Test
         public ContactMapping()
         {
             HasKey(m => m.StoreId);
-            Property(m => m.UUId).IsIndex("Contact_UUID", true);
-            Ignore(m => m.StoreMetadata);
+
+            Property(m => m.UUId)
+                .IsIndex("Contact_UUID", true);
+
             HasRequired(m => m.Owner)
                 .WithMany()
                 .HasForeignKey(m => m.OwnerId);
@@ -175,6 +212,15 @@ namespace Axis.Jupiter.Europa.Test
             this.UsingConfiguration(new UserMapping())
                 .UsingConfiguration(new BioMapping())
                 .UsingConfiguration(new ContactMapping());
+
+            //general model builder configurations
+            this.UsingModelBuilder(_mb =>
+            {
+                var baseMap = _mb.Entity<Base>();
+                baseMap.Ignore(_m => _m.StoreMetadata);
+
+                _mb.Ignore<Base>();
+            });
 
             //naturally, seeding data comes here. lets seed with a root-user
             this.WithContextAction(store =>

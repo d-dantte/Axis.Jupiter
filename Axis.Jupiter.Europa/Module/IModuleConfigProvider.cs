@@ -48,7 +48,6 @@ namespace Axis.Jupiter.Europa.Module
         IModuleConfigProvider UsingModelBuilder(Action<DbModelBuilder> action);
 
         IEnumerable<Type> ConfiguredTypes();
-        IEnumerable<IEntityMapConfiguration> ConfiguredEntityMaps();
 
         void BuildModel(DbModelBuilder modelBuilder);
         void InitializeContext(DataStore context);
@@ -57,5 +56,10 @@ namespace Axis.Jupiter.Europa.Module
         /// Determines if this config provider can accept changes to itself or not
         /// </summary>
         bool IsLocked { get; }
+    }
+
+    internal interface IEntityMapConfigProvider
+    {
+        IEnumerable<IEntityMapConfiguration> ConfiguredEntityMaps();
     }
 }
