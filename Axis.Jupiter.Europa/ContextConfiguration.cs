@@ -7,6 +7,7 @@ using Axis.Jupiter.Europa.Module;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using Axis.Luna.Extensions;
+using Axis.Jupiter.Europa.Mappings;
 
 namespace Axis.Jupiter.Europa
 {
@@ -23,6 +24,18 @@ namespace Axis.Jupiter.Europa
 
         public IEnumerable<Type> ConfiguredEntityTypes => Modules.Values.SelectMany(_m => _m.ConfiguredTypes());
         public IEnumerable<IModuleConfigProvider> ConfiguredModules => Modules.Values.ToArray();
+
+        internal IEntityMapConfiguration EntityMapConfigFor<Entity>()
+        => Modules.Values
+            .Select(_m => _m as IEntityMapConfigProvider)
+            .SelectMany(_mcp => _mcp.ConfiguredEntityMaps())
+            .FirstOrDefault(_emc => _emc.EntityType == typeof(Entity));
+
+        internal IEntityMapConfiguration ModelMapConfigFor<Model>()
+        => Modules.Values
+            .Select(_m => _m as IEntityMapConfigProvider)
+            .SelectMany(_mcp => _mcp.ConfiguredEntityMaps())
+            .FirstOrDefault(_emc => _emc.ModelType == typeof(Model));
 
 
         public ContextConfiguration<Context> WithInitializer(IDatabaseInitializer<Context> initializer) => this.UsingValue(_ => DatabaseInitializer = initializer);

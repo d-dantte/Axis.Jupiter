@@ -11,30 +11,41 @@ namespace Axis.Jupiter.Europa
     {
         private List<IEntityMapConfiguration> _mapConfigCache = new List<IEntityMapConfiguration>();
         private Dictionary<object, object> _conversionContext = new Dictionary<object, object>();
+        private DataStore _store = null;
 
-        public ModelConverter(IEnumerable<IModuleConfigProvider> modules)
+        internal ModelConverter(DataStore store)
         {
-            modules.SelectMany(_next => (_next as IEntityMapConfigProvider).ConfiguredEntityMaps())
-                   .Pipe(_mapConfigCache.AddRange);
+            _store = store.ThrowIfNull("invlid data store supplied");
+            store.ContextConfig.ConfiguredModules
+                .Select(_m => _m as IEntityMapConfigProvider)
+                .SelectMany(_next => _next.ConfiguredEntityMaps())
+                .Pipe(_mapConfigCache.AddRange);
         }
 
         public object ToEntity<Model>(Model model)
         {
+            //TODO: Check in the context's local cache for entities before creating new ones with the activator
             if (model == null) return null;
             else 
             {
-                if(!_conversionContext.ContainsKey(model))
+                if (_conversionContext.ContainsKey(model)) return _conversionContext[model];
+                else
                 {
-                    var mapConfig = _mapConfigCache.First(_next => _next.ModelType == typeof(Model));
+                    var mapConfig = _mapConfigCache
+                        .FirstOrDefault(_next => _next.ModelType == typeof(Model))
+                        .ThrowIfNull($"No Map configuration found for model-type: {typeof(Model)}");
+
                     var entityType = mapConfig.EntityType;
+                    var local = _store.GetLocally(_store.Set(entityType), entityType, model); //<-- RELIES on the model and entity having identical property names - 
+
+
                     var entity = Activator.CreateInstance(entityType);
-                    _conversionContext.Add(model, entity);
+                    //mapConfig.ModelToEntityMapper(this, model, entity); //<-- map
 
-                    //map the entity
-                    mapConfig.ModelToEntityMapper(this, model, entity);
+
+                    if (local == null) return _conversionContext[model] = entity;
+                    else return _conversionContext[model] = local;
                 }
-
-                return _conversionContext[model];
             }
         }
 
@@ -46,11 +57,16 @@ namespace Axis.Jupiter.Europa
             {
                 if (!_conversionContext.ContainsKey(entity))
                 {
-                    var mapConfig = _mapConfigCache.First(_next => _next.ModelType == typeof(Model));
-                    _conversionContext.Add(entity, entity);
+                    var mapConfig = _mapConfigCache
+                       .FirstOrDefault(_next => _next.ModelType == typeof(Model))
+                       .ThrowIfNull($"No Map configuration found for model-type: {typeof(Model)}");
+
+                    var modleType = mapConfig.ModelType;
+                    var model = Activator.CreateInstance(modleType);
+                    //mapConfig.EntityToModelMapper(this, entity, model); //<-- map
 
                     //map the entity
-                    mapConfig.EntityToModelMapper(this, entity);
+                    //mapConfig.EntityToModelMapper(this, model);
                 }
 
                 return (Model)entity;

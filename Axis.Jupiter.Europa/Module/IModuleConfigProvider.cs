@@ -18,8 +18,8 @@ namespace Axis.Jupiter.Europa.Module
         /// <param name="configuration"></param>
         /// <returns></returns>
         IModuleConfigProvider UsingConfiguration<Model, Entity>(BaseEntityMapConfig<Model, Entity> configuration)
-        where Model : class
-        where Entity : class, Model, new();
+        where Model : class, new()
+        where Entity : class, new();
 
         /// <summary>
         /// Adds a new ComplexTypeConfiguratin to the underlying provider's list of configurations for the specified entity type, or replaces the old one.
@@ -29,8 +29,8 @@ namespace Axis.Jupiter.Europa.Module
         /// <param name="configuration"></param>
         /// <returns></returns>
         IModuleConfigProvider UsingConfiguration<Model, Entity>(BaseComplexMapConfig<Model, Entity> configuration)
-        where Model : class
-        where Entity : class, Model, new();
+        where Model : class, new()
+        where Entity : class, new();
 
         /// <summary>
         /// Accepts an action that attempts to seed the database with data - or persorm any other action on the database

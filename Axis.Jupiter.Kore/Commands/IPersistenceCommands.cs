@@ -6,13 +6,13 @@ namespace Axis.Jupiter.Kore.Commands
 {
     public interface IPersistenceCommands: IDisposable
     {
-        IOperation<Entity> Add<Entity>(Entity d) where Entity : class;
-        IOperation<IEnumerable<Entity>> AddBatch<Entity>(IEnumerable<Entity> d) where Entity : class;
+        IOperation<Model> Add<Model>(Model d) where Model : class;
+        IOperation<IEnumerable<Model>> AddBatch<Model>(IEnumerable<Model> d) where Model : class;
 
-        IOperation<Entity> Update<Entity>(Entity d, Action<Entity> copyFunction = null) where Entity : class;
-        IOperation<IEnumerable<Entity>> UpdateBatch<Entity>(IEnumerable<Entity> d, Action<Entity> copyFunction = null) where Entity : class;
+        IOperation<Model> Update<Model>(Model d, Action<Model> copyFunction = null) where Model : class;
+        IOperation<IEnumerable<Model>> UpdateBatch<Model>(IEnumerable<Model> d, Action<Model> copyFunction = null) where Model : class;
 
-        IOperation<Entity> Delete<Entity>(Entity d) where Entity : class;
-        IOperation<IEnumerable<Entity>> DeleteBatch<Entity>(IEnumerable<Entity> d) where Entity : class;
+        IOperation<Model> Delete<Model>(Model d) where Model : class;
+        IOperation<IEnumerable<Model>> DeleteBatch<Model>(IEnumerable<Model> d) where Model : class;
     }
 }

@@ -32,9 +32,9 @@ namespace Axis.Jupiter.Europa.Module
         => Try(() => _modelBuilderActions.Add(action.ThrowIfNull()));
 
         public IModuleConfigProvider UsingConfiguration<Model, Entity>(BaseEntityMapConfig<Model, Entity> configuration)
-        where Model : class where Entity : class, Model, new() => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
+        where Model : class, new() where Entity : class, new() => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
         public IModuleConfigProvider UsingConfiguration<Model, Entity>(BaseComplexMapConfig<Model, Entity> configuration)
-        where Model : class where Entity : class, Model, new() => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
+        where Model : class, new() where Entity : class, new() => Try(() => _entityConfigs[typeof(Entity)] = configuration.ThrowIfNull());
 
         public IModuleConfigProvider WithContextAction(Action<DataStore> contextAction)
         => Try(() => _contextActions.Add(contextAction.ThrowIfNull()));

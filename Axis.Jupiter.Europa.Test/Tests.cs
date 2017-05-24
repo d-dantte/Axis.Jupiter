@@ -6,7 +6,12 @@ using System.Linq;
 using Axis.Luna.Extensions;
 using Axis.Jupiter.Europa.Module;
 using System.Data.Entity;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity.Infrastructure;
+using System.Xml;
+using System.Text;
+using System.Data.SqlClient;
+using System.Collections.Generic;
+using Axis.Jupiter.Europa.Utils;
 
 namespace Axis.Jupiter.Europa.Test
 {
@@ -25,23 +30,73 @@ namespace Axis.Jupiter.Europa.Test
             
             using (var store = new DataStore(contextConfig))
             {
-                var userSet = store.Set<UserEntity>();
-                var root = userSet.FirstOrDefault();
-
-                var bioSet = store.Set<BioEntity>();
-                var bio = bioSet
-                    .Include(_ => _.Owner)
-                    .FirstOrDefault(_bio => _bio.Owner.UserId == root.UserId)
-                    ?? bioSet.Add(new BioEntity
-                    {
-                        Dob = DateTime.Now,
-                        FirstName = "Root",
-                        LastName = "Admin",
-                        Nationality = "Blue Nowhere",
-                        Owner = root
-                    })
-                    .UsingValue(_ => store.SaveChanges());
+                store.Set<UserEntity>().Any(); //<-- force db creation
             }
+        }
+
+        [TestMethod]
+        public void TestInsert()
+        {
+            var cstring = "Data Source=(local);Initial Catalog=Europa_Test;User ID=sa;Password=developer;MultipleActiveResultSets=True;App=EntityFramework";
+
+            var contextConfig = new ContextConfiguration<DataStore>()
+                .UsingModule(new TestModuleConfig())
+                .WithConnection(cstring)
+                .WithInitializer(new DropCreateDatabaseIfModelChanges<DataStore>());
+            
+
+            using (var store = new DataStore(contextConfig))
+            {
+                for (int cnt = 0; cnt < 100; cnt++)
+                {
+                    var user = new User
+                    {
+                        Status = 1,
+                        UserId = $"@admin-{cnt}"
+                    };
+
+                    var bio = new Bio
+                    {
+                        FirstName = RandomAlphaNumericGenerator.RandomAlpha(6),
+                        LastName = RandomAlphaNumericGenerator.RandomAlpha(5),
+                        Dob = DateTime.Now,
+                        Owner = user
+                    };
+                    var contact = new Contact
+                    {
+                        Email = $"admin-{cnt}@abc.xyz",
+                        Phone = $"0{RandomAlphaNumericGenerator.RandomNumeric(10)}",
+                        Owner = user
+                    };
+
+                    store.Add(bio).Resolve();
+                    store.Add(contact).Resolve();
+                }
+            }
+        }
+
+        [TestMethod]
+        public void GenerateEdmx()
+        {
+            var cstring = "Data Source=(local);Initial Catalog=Europa_Test;User ID=sa;Password=developer;MultipleActiveResultSets=True;App=EntityFramework";
+
+            var contextConfig = new ContextConfiguration<DataStore>()
+                .UsingModule(new TestModuleConfig())
+                .WithConnection(cstring)
+                .WithInitializer(new DropCreateDatabaseIfModelChanges<DataStore>());
+
+            var builder = new DbModelBuilder(DbModelBuilderVersion.Latest);
+            contextConfig.ConfiguredModules.ForAll(_t => _t.BuildModel(builder));
+            var model = builder.Build(new SqlConnection(cstring));
+            var start = DateTime.Now;
+            var efm = new EFMappings(model);
+            Console.WriteLine($"Completed in ~ {DateTime.Now - start}");
+
+            using (var store = new DataStore(contextConfig))
+            {
+                new XmlTextWriter("Edmx.xml", Encoding.Default).Using(_writer => EdmxWriter.WriteEdmx(store, _writer));
+            }
+
         }
     }
 
@@ -80,40 +135,111 @@ namespace Axis.Jupiter.Europa.Test
         public string Email { get; set; }
         public int Status { get; set; }
 
+        public Address Address { get; set; }
+
         public virtual User Owner { get; set; }
+    }
+
+    public class Address
+    {
+        public string Street { get; set; }
+        public string Town { get; set; }
+        public string State { get; set; }
+    }
+
+    public class Shape
+    {
+        public Guid UUId { get; set; }
+        public int SideCount { get; set; }
+        public string Name { get; set; }
+
+        //public User Owner { get; set; }
+    }
+    public class Circle:Shape
+    {
+        public double Radius { get; set; }
+    }
+    public class Rectangle: Shape
+    {
+        public double Length { get; set; }
+        public double Breath { get; set; }
+
+        //public User Owner { get; set; }
     }
     #endregion
 
 
     #region Entities
-    public class UserEntity: User
+    public abstract class BaseEntity
     {
-    }
+        public Guid UUId { get; set; }
+        public DateTime CreatedOn { get; set; }
 
-    public class BioEntity: Bio
-    {
-        public long StoreId { get; set; }
-
-        private UserEntity _owner;
-        public new UserEntity Owner
+        public BaseEntity()
         {
-            get { return _owner; }
-            set { base.Owner = _owner = value; }
+            CreatedOn = DateTime.Now;
+            UUId = Guid.NewGuid();
         }
     }
 
-    public class ContactEntity: Contact
+    public class UserEntity : Base
     {
-        public long StoreId { get; set; }
+        public BioEntity Bio { get; set; }
+        public int Status { get; set; }
+        public string UserId { get; set; }
+        public ICollection<ContactEntity> Contacts { get; set; }
+    }
+
+    public class BioEntity : Base
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+
+        public DateTime Dob { get; set; }
+        public string Nationality { get; set; }
+        
         public string OwnerId { get; set; }
+        public UserEntity Owner { get; set; }
+    }
 
+    public class ContactEntity : Base
+    {
+        public long StoreId { get; set; }
+        public string Phone { get; set; }
+        public string Email { get; set; }
+        public int Status { get; set; }
 
-        private UserEntity _owner;
-        public new UserEntity Owner
-        {
-            get { return _owner; }
-            set { base.Owner = _owner = value; }
-        }
+        public AddressEntity Address { get; set; }
+
+        public UserEntity Owner { get; set; }
+        public string OwnerId { get; set; }
+    }
+
+    public class AddressEntity
+    {
+        public string Street { get; set; }
+        public string Town { get; set; }
+        public string State { get; set; }
+    }
+
+    public class ShapeEntity
+    {
+        public long StoreId { get; set; }
+        public Guid UUId { get; set; }
+        public int SideCount { get; set; }
+        public string Name { get; set; }
+
+        public UserEntity Owner { get; set; }
+        public string OwnerId { get; set; }
+    }
+    public class CircleEntity : ShapeEntity
+    {
+        public double Radius { get; set; }
+    }
+    public class RectangleEntity : ShapeEntity
+    {
+        public double Length { get; set; }
+        public double Breath { get; set; }
     }
     #endregion
 
@@ -128,15 +254,9 @@ namespace Axis.Jupiter.Europa.Test
 
             Property(m => m.UUId)
                 .IsIndex("User_UUID", true);
-        }
 
-        public override void EntityToModel(ModelConverter converter, UserEntity entity)
-        {
-        }
-
-        public override void ModelToEntity(ModelConverter converter, User model, UserEntity entity)
-        {
-            model.CopyTo(entity);
+            HasOptional(m => m.Bio)
+                .WithRequired(m => m.Owner);
         }
     }
 
@@ -144,28 +264,41 @@ namespace Axis.Jupiter.Europa.Test
     {
         public BioMapping()
         {
-            HasKey(m => m.StoreId);
+            HasKey(m => m.OwnerId);
 
             Property(m => m.UUId)
                 .IsIndex("Bio_UUID", true);
 
             HasRequired(m => m.Owner)
-                .WithOptional();
+                .WithOptional(m => m.Bio);
         }
+    }
 
-        public override void EntityToModel(ModelConverter converter, BioEntity entity)
+    public class ShapeMapping : BaseEntityMapConfig<Shape, ShapeEntity>
+    {
+        public ShapeMapping(): base(false)
         {
-            var tbuilder = TagBuilder.Create();
-            tbuilder.Add(nameof(BioEntity.StoreId), entity.StoreId.ToString());
-            entity.StoreMetadata = tbuilder.ToString();
+            ToTable("Shapes__");
+
+            HasKey(m => m.StoreId);
+            HasKey(m => m.UUId);
+
+            Property(m => m.UUId)
+                .IsIndex("Shape_UUID", true);
+
+            HasRequired(m => m.Owner)
+                .WithMany()
+                .HasForeignKey(m => m.OwnerId);
+            
+            Map<CircleEntity>(m => m.Requires("Type").HasValue("Circle"));
+            Map<RectangleEntity>(m => m.Requires("Type").HasValue("Rect"));
         }
+    }
 
-        public override void ModelToEntity(ModelConverter converter, Bio model, BioEntity entity)
+    public class AddressMapping: BaseComplexMapConfig<Address, AddressEntity>
+    {
+        public AddressMapping()
         {
-            model.CopyTo(entity);
-
-            var tbuilder = TagBuilder.Create(entity.StoreMetadata);
-            entity.StoreId = Convert.ToInt64(tbuilder.Tags.FirstOrDefault(_t => _t.Name == nameof(BioEntity.StoreId))?.Value ?? "0");
         }
     }
 
@@ -179,25 +312,8 @@ namespace Axis.Jupiter.Europa.Test
                 .IsIndex("Contact_UUID", true);
 
             HasRequired(m => m.Owner)
-                .WithMany()
+                .WithMany(m => m.Contacts)
                 .HasForeignKey(m => m.OwnerId);
-        }
-
-        public override void EntityToModel(ModelConverter converter, ContactEntity entity)
-        {
-            var tbuilder = TagBuilder.Create();
-            tbuilder.Add(nameof(ContactEntity.StoreId), entity.StoreId.ToString())
-                    .Add(nameof(ContactEntity.OwnerId), entity.OwnerId.ToString());
-            entity.StoreMetadata = tbuilder.ToString();
-        }
-
-        public override void ModelToEntity(ModelConverter converter, Contact model, ContactEntity entity)
-        {
-            model.CopyTo(entity);
-
-            var tbuilder = TagBuilder.Create(entity.StoreMetadata);
-            entity.StoreId = Convert.ToInt64(tbuilder.Tags.FirstOrDefault(_t => _t.Name == nameof(ContactEntity.StoreId))?.Value ?? "0");
-            entity.OwnerId = tbuilder.Tags.FirstOrDefault(_t => _t.Name == nameof(ContactEntity.OwnerId))?.Value;
         }
     }
     #endregion
@@ -211,7 +327,9 @@ namespace Axis.Jupiter.Europa.Test
         {
             this.UsingConfiguration(new UserMapping())
                 .UsingConfiguration(new BioMapping())
-                .UsingConfiguration(new ContactMapping());
+                .UsingConfiguration(new ContactMapping())
+                .UsingConfiguration(new AddressMapping())
+                .UsingConfiguration(new ShapeMapping());
 
             //general model builder configurations
             this.UsingModelBuilder(_mb =>

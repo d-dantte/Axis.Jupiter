@@ -49,6 +49,8 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <Choose>
     <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
@@ -70,6 +72,10 @@
     <ProjectReference Include="..\Axis.Jupiter.Europa\Axis.Jupiter.Europa.csproj">
       <Project>{327c01d9-0abd-4b87-a75b-2ae9c026cfea}</Project>
       <Name>Axis.Jupiter.Europa</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Axis.Jupiter.Kore\Axis.Jupiter.Kore.csproj">
+      <Project>{9ac7fffd-dc4d-497a-aa43-2e5d71f62fd7}</Project>
+      <Name>Axis.Jupiter.Kore</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

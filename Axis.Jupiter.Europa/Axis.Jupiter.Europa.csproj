@@ -72,10 +72,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Utils\SampleEdmx.xml" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="Backlog.txt" />
+    <Content Include="Utils\Edmx.xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Axis.Jupiter.Kore\Axis.Jupiter.Kore.csproj">
