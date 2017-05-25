@@ -281,7 +281,6 @@ namespace Axis.Jupiter.Europa.Test
             ToTable("Shapes__");
 
             HasKey(m => m.StoreId);
-            HasKey(m => m.UUId);
 
             Property(m => m.UUId)
                 .IsIndex("Shape_UUID", true);

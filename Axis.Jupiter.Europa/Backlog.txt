@@ -1,11 +1,22 @@
 ﻿
-3.1.0/features ==================================================================================
+3.1.0/features ===============================================================================================
 -	Ability to configure Target and Storage Entities. Target entities are those coming from the domain side,
     StorageEntities are essentially the sqlserver optimized version of the domain entity; they typically
 	contain things like foreign keys, primary keys, indexes, etc, that are not on the domain entity. [Done]
--	Europa now depends on Kore, and Kore.EF is now obsolete.
+-	Add IEntityMapConfiguration.[Extract/Inject]StoreMetadata methods that allow the domain to cache/introduce
+	Store metadata from/into the DataStore Context.
+-	Europa now depends on Kore, and Kore.EF is now obsolete. [Done]
+-	Expand the EFMapping implementation to accomodate Navigational properties and ComplexTypes [Done]
+-	Expand the TableMapping of the EFMapping, as the old implementation was not robust [Done]
+-	IPersistenceCommands.Add: acts only upon the object given to it, and not on its navigational properties.
+	It forces ForeignKey scalars to be set, rather than relying on EF to act on all objects reachable via
+	the object graph. 
+-	IPersistenceCommands.DeleteBatch: gather all keys for all objects in the sequence, batch it by some number,
+	and generate a delete command (per batch) where objects in the db match the keys in that batch. We may want
+	to dump the keys to the delete records in a temp table so we can return it to the caller who can then use it
+	to remove entities from the local context.
 
 
-3.2.0/features ===================================================================================
+3.2.0/features ================================================================================================
 -	implement the bulk - delete, and bulk - update, using sql statements sent to the database containing 
     appropriate conditions.

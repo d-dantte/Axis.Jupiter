@@ -44,7 +44,7 @@ namespace Axis.Jupiter.Europa.Utils
                          .MetadataProperties
                          .FirstOrDefault(_mdp => _mdp.Name == "http://schemas.microsoft.com/ado/2013/11/edm/customannotation:ClrType")
                          .Value
-                         .Cast<Type>();
+                         .Cast<Type>(); //<-- as Type
 
                      var typeModel = new TypeModel
                      {
@@ -52,7 +52,7 @@ namespace Axis.Jupiter.Europa.Utils
                          MappedTable = _ef.StoreEntitySet.Table,
                          ScalarProperties = _ef.PropertyMappings
                             .Where(_pm => _pm is ScalarPropertyMapping)
-                            .Where(_pm => clrType.GetProperty(_pm.Property.Name).DeclaringType == clrType)
+                            .Where(_pm => _pm.Property.DeclaringType == _etm.EntityType)
                             .Select(_pm =>
                             {
                                 var column = _pm.Cast<ScalarPropertyMapping>().Column;
@@ -78,12 +78,16 @@ namespace Axis.Jupiter.Europa.Utils
                         {
                             var association = model.ConceptualModel.AssociationTypes.FirstOrDefault(_ass => _ass.Name == _np.RelationshipType.Name);
                             var isSource = association.Constraint.FromRole.TypeUsage.EdmType.Name.Contains(_etm.EntityType.Name);
+                            var constraint = _np.RelationshipType.Cast<AssociationType>().Constraint;
                             return new NavigationPropertyModel
                             {
                                 ClrProperty = clrType.GetProperty(_np.Name),
-                                ForeignKeys = isSource ?
-                                              association.Constraint.FromProperties.Select(_p => typeModel.ScalarProperties.FirstOrDefault(_sp => _sp.ClrProperty.Name == _p.Name)) :
-                                              association.Constraint.ToProperties.Select(_p => typeModel.ScalarProperties.FirstOrDefault(_sp => _sp.ClrProperty.Name == _p.Name))
+                                LocalKeys = isSource ?
+                                            typeModel.ScalarProperties.Where(_sp => constraint.FromProperties.Any(_p => _p.Name == _sp.ClrProperty.Name)):
+                                            typeModel.ScalarProperties.Where(_sp => constraint.ToProperties.Any(_p => _p.Name == _sp.ClrProperty.Name)),
+                                ExternalKeys = !isSource?
+                                               constraint.FromProperties.Select(_p => _p.Name) :
+                                               constraint.ToProperties.Select(_p => _p.Name)
                             };
                         });
 
@@ -98,7 +102,7 @@ namespace Axis.Jupiter.Europa.Utils
                      Name = _group.Key,
                      TypeModels = _group
                  })
-                 .ForAll(_tableModels.Add);
+                 .ForAll(_tableModels.Add); //<-- ToList().ForEach(...)
         }
 
         private List<TypeModel> _typeModels = new List<TypeModel>();
@@ -249,14 +253,25 @@ namespace Axis.Jupiter.Europa.Utils
     {
         public PropertyInfo ClrProperty { get; internal set; }
 
-        private List<ScalarPropertyModel> _fkeys = new List<ScalarPropertyModel>();
-        public IEnumerable<ScalarPropertyModel> ForeignKeys
+        private List<ScalarPropertyModel> _lkeys = new List<ScalarPropertyModel>();
+        public IEnumerable<ScalarPropertyModel> LocalKeys
         {
-            get { return _fkeys.ToArray(); }
+            get { return _lkeys.ToArray(); }
             set
             {
-                _fkeys.Clear();
-                if (value != null) _fkeys.AddRange(value.UsingEach(_v => _v.IsForeignKey = true));
+                _lkeys.Clear();
+                if (value != null) _lkeys.AddRange(value.UsingEach(_v => _v.IsForeignKey = true));
+            }
+        }
+
+        private List<string> _exkeys = new List<string>();
+        public IEnumerable<string> ExternalKeys
+        {
+            get { return _exkeys.ToArray(); }
+            set
+            {
+                _exkeys.Clear();
+                if (value != null) _exkeys.AddRange(value);
             }
         }
     }
@@ -275,7 +290,7 @@ namespace Axis.Jupiter.Europa.Utils
                 if (value != null) _typeModels.AddRange(value.UsingEach(_v => _v.TableModel = this));
             }
         }
-        public IEnumerable<ColumnModel> ColumnModels => TypeModels.SelectMany(_tm => _tm.ScalarProperties).Select(_sp => new ColumnModel { MappedProperty = _sp });
+        public IEnumerable<ColumnModel> ColumnModels => TypeModels.SelectMany(_tm => _tm.AllScalarProperties).Select(_sp => new ColumnModel { MappedProperty = _sp });
     }
     public class ColumnModel
     {
