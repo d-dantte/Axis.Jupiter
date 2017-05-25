@@ -212,6 +212,7 @@ namespace Axis.Jupiter.Europa.Utils
             }
         }
 
+        //should include properties from base-types where available!!!!!
         public IEnumerable<ScalarPropertyModel> AllScalarProperties => ScalarProperties.Concat(_cprops.SelectMany(_cp => _cp.AllScalarProperties));
 
 

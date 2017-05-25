@@ -11,6 +11,8 @@ using System.Linq;
 using Axis.Jupiter.Kore.Commands;
 using Axis.Luna.Operation;
 using System.Linq.Expressions;
+using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace Axis.Jupiter.Europa
 {
@@ -291,10 +293,109 @@ namespace Axis.Jupiter.Europa
 
         #endregion
 
-        //private void ClearNavigationProperties(object entity)
-        //{
-        //    var mapping = MappingFor(entity.GetType());
-        //    mapping.Properties.Where(_pm => _pm.is)
-        //}
+        private static ConcurrentDictionary<string, Action<object, object>> MutatorCache = new ConcurrentDictionary<string, Action<object, object>>();
+
+        private string PropertySignature(PropertyInfo propInfo) => $"[{propInfo.DeclaringType.MinimalAQName()}].{propInfo.Name}";
+
+        private Model TransformEntity<Entity, Model>(Entity entity, Dictionary<object, object> cache)
+        where Entity : class 
+        where Model : class, new() => Transform(entity, typeof(Model), cache).Cast<Model>();
+
+        private object TransformEntity(object entity, Type modelType, Dictionary<object, object> cache)
+        {
+            if (cache.ContainsKey(entity)) return cache[entity];
+            else
+            {
+                var _modelMap = ContextConfig.ModelMapConfigFor(modelType);
+                var _model = Activator.CreateInstance(modelType);
+                cache[entity] = _model;
+                var etype = entity.GetType();
+
+                var scalarProps = new HashSet<string>(MappingFor(etype).AllScalarProperties.Select(_sp => _sp.ClrProperty.Name));
+                var complexProps = new HashSet<string>(MappingFor(etype).ComplexProperties.Select(_cp => _cp.SourceProperty.Name));
+                var navigProps = new HashSet<string>(MappingFor(etype).NavigationProperties.Select(_np => _np.ClrProperty.Name));
+
+                modelType
+                    .GetProperties()
+                    .ForAll(_mprop =>
+                    {
+                        var _eprop = etype.GetProperty(_mprop.Name);
+
+                        //property doesnt exist in the entity
+                        if (_eprop == null) return;
+
+                        //if this is a simple non-navigation property
+                        else if (scalarProps.Contains(_mprop.Name))
+                        {
+                            if (_eprop.PropertyType != _mprop.PropertyType) throw new Exception($"type mismatch for property {PropertySignature(_mprop)}");
+
+                            object val = null;
+                            if (!entity.TryPropertyValue(_mprop.Name, ref val)) return;
+                            MutatorCache.GetOrAdd(PropertySignature(_mprop), _msig =>
+                            {
+                                //create a method that assigns the property: ((Model)model).Property = (PropertyType)val;
+                                ParameterExpression pentity = Expression.Parameter(typeof(object)),
+                                                    pvalue = Expression.Parameter(typeof(object));
+                                var lambda = Expression.Lambda(
+                                    Expression.Block(
+                                        Expression.Assign(
+                                            Expression.MakeMemberAccess(
+                                                Expression.Convert(pentity, modelType),
+                                                _mprop
+                                            ),
+                                            Expression.Convert(pvalue, _mprop.PropertyType)
+                                        )
+                                    ),
+                                    pentity, pvalue);
+
+                                return (Action<object, object>)lambda.Compile();
+                            })
+                            .Invoke(_model, val);
+                        }
+
+                        //else if its a complex property...
+                        else if (complexProps.Contains(_mprop.Name))
+                        {
+                            TransformComplexType(_eprop, _mprop);
+                        }
+
+                        //else if its a navigation property...
+                        else if (navigProps.Contains(_mprop.Name))
+                        {
+                            //first, assign the scalar part of the navigation property...
+
+                            //now convert the object itself and assign it
+                            object val = TransformEntity(entity.PropertyValue(_mprop.Name), _mprop.PropertyType ,cache);
+                            MutatorCache.GetOrAdd(PropertySignature(_mprop), _msig =>
+                            {
+                                //create a method that assigns the property: ((Model)model).Property = (PropertyType)val;
+                                ParameterExpression pentity = Expression.Parameter(typeof(object)),
+                                                    pvalue = Expression.Parameter(typeof(object));
+                                var lambda = Expression.Lambda(
+                                    Expression.Block(
+                                        Expression.Assign(
+                                            Expression.MakeMemberAccess(
+                                                Expression.Convert(pentity, modelType),
+                                                _mprop
+                                            ),
+                                            Expression.Convert(pvalue, _mprop.PropertyType)
+                                        )
+                                    ),
+                                    pentity, pvalue);
+
+                                return (Action<object, object>)lambda.Compile();
+                            })
+                            .Invoke(_model, val);
+                        }
+                    });
+
+                return _model;
+            }
+        }
+
+        private void TransformComplexType(PropertyInfo entityProperty, PropertyInfo modelProperty)
+        {
+
+        }
     }
 }

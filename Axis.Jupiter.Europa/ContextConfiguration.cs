@@ -25,17 +25,19 @@ namespace Axis.Jupiter.Europa
         public IEnumerable<Type> ConfiguredEntityTypes => Modules.Values.SelectMany(_m => _m.ConfiguredTypes());
         public IEnumerable<IModuleConfigProvider> ConfiguredModules => Modules.Values.ToArray();
 
-        internal IEntityMapConfiguration EntityMapConfigFor<Entity>()
+        internal IEntityMapConfiguration EntityMapConfigFor<Entity>() => EntityMapConfigFor(typeof(Entity));
+        internal IEntityMapConfiguration EntityMapConfigFor(Type entityType)
         => Modules.Values
             .Select(_m => _m as IEntityMapConfigProvider)
             .SelectMany(_mcp => _mcp.ConfiguredEntityMaps())
-            .FirstOrDefault(_emc => _emc.EntityType == typeof(Entity));
+            .FirstOrDefault(_emc => _emc.EntityType == entityType);
 
-        internal IEntityMapConfiguration ModelMapConfigFor<Model>()
+        internal IEntityMapConfiguration ModelMapConfigFor<Model>() => ModelMapConfigFor(typeof(Model));
+        internal IEntityMapConfiguration ModelMapConfigFor(Type modelType)
         => Modules.Values
             .Select(_m => _m as IEntityMapConfigProvider)
             .SelectMany(_mcp => _mcp.ConfiguredEntityMaps())
-            .FirstOrDefault(_emc => _emc.ModelType == typeof(Model));
+            .FirstOrDefault(_emc => _emc.ModelType == modelType);
 
 
         public ContextConfiguration<Context> WithInitializer(IDatabaseInitializer<Context> initializer) => this.UsingValue(_ => DatabaseInitializer = initializer);
