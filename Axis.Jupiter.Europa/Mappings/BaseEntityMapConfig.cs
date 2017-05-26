@@ -19,11 +19,14 @@ namespace Axis.Jupiter.Europa.Mappings
         public Type EntityType { get; } = typeof(Entity);
         public Type ModelType { get; } = typeof(Model);
 
+        public void ExtractStoreMetadata(object entity, string serializedMetadata)
+        {
+            throw new NotImplementedException();
+        }
 
-        //void IEntityMapConfiguration.EntityToModelMapper(ModelConverter converter, object entity, object model) => EntityToModel(converter, (Entity)entity, (Model)model);
-        //void IEntityMapConfiguration.ModelToEntityMapper(ModelConverter converter, object model, object entity) => ModelToEntity(converter, (Model)model, (Entity)entity);
-
-        //public abstract void EntityToModel(ModelConverter converter, Entity entity, Model model);
-        //public abstract void ModelToEntity(ModelConverter converter, Model model, Entity entity);
+        public string InjectStoreMetadata(object entity)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

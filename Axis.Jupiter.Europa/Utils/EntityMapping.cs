@@ -48,7 +48,11 @@ namespace Axis.Jupiter.Europa.Utils
 
                      var typeModel = new TypeModel
                      {
+                         MappingRoot = this,
                          ClrType = clrType,
+                         BaseType = _etm.EntityType.BaseType?.MetadataProperties
+                            .FirstOrDefault(_mdp => _mdp.Name == "http://schemas.microsoft.com/ado/2013/11/edm/customannotation:ClrType")?
+                            .Value.Cast<Type>(),
                          MappedTable = _ef.StoreEntitySet.Table,
                          ScalarProperties = _ef.PropertyMappings
                             .Where(_pm => _pm is ScalarPropertyMapping)
@@ -106,6 +110,7 @@ namespace Axis.Jupiter.Europa.Utils
         }
 
         private List<TypeModel> _typeModels = new List<TypeModel>();
+        private List<ComplexTypeModel> _complexTypeModels = new List<ComplexTypeModel>();
         private List<TableModel> _tableModels = new List<TableModel>();
 
         public IEnumerable<TypeModel> TypeModelMappings => _typeModels.ToArray();
@@ -147,7 +152,8 @@ namespace Axis.Jupiter.Europa.Utils
                     .Where(_pm => _pm is ComplexPropertyMapping)
                     .Cast<ComplexPropertyMapping>()
                     .Select(ExtractComplexTypeModel)
-            };
+            }
+            .UsingValue(_complexTypeModels.Add);
         }
     }
     
@@ -185,12 +191,19 @@ namespace Axis.Jupiter.Europa.Utils
 
     public class TypeModel
     {
+        private HashSet<NavigationPropertyModel> _navProps = new HashSet<NavigationPropertyModel>();
+        private HashSet<ComplexTypeModel> _cprops = new HashSet<ComplexTypeModel>();
+        private HashSet<ScalarPropertyModel> _props = new HashSet<ScalarPropertyModel>();
         internal string MappedTable { get; set; }
+        internal EFMappings MappingRoot { get; set; }
+        internal Type BaseType { get; set; }
+
+        public TypeModel BaseTypeModel => MappingRoot.MappingFor(BaseType);
 
         public TableModel TableModel { get; internal set; }
+
         public Type ClrType { get; internal set; }
 
-        private HashSet<ScalarPropertyModel> _props = new HashSet<ScalarPropertyModel>();
         public IEnumerable<ScalarPropertyModel> ScalarProperties
         {
             get { return _props.ToArray(); }
@@ -201,7 +214,6 @@ namespace Axis.Jupiter.Europa.Utils
             }
         }
 
-        private HashSet<ComplexTypeModel> _cprops = new HashSet<ComplexTypeModel>();
         public IEnumerable<ComplexTypeModel> ComplexProperties
         {
             get { return _cprops.ToArray(); }
@@ -212,11 +224,6 @@ namespace Axis.Jupiter.Europa.Utils
             }
         }
 
-        //should include properties from base-types where available!!!!!
-        public IEnumerable<ScalarPropertyModel> AllScalarProperties => ScalarProperties.Concat(_cprops.SelectMany(_cp => _cp.AllScalarProperties));
-
-
-        private HashSet<NavigationPropertyModel> _navProps = new HashSet<NavigationPropertyModel>();
         public IEnumerable<NavigationPropertyModel> NavigationProperties
         {
             get { return _navProps.ToArray(); }
@@ -226,6 +233,10 @@ namespace Axis.Jupiter.Europa.Utils
                 if (value != null) _navProps.AddRange(value);
             }
         }
+        
+        public IEnumerable<ScalarPropertyModel> AllScalarProperties
+        => ScalarProperties.Concat(_cprops.SelectMany(_cp => _cp.AllScalarProperties))
+                           .Concat(BaseTypeModel?.AllScalarProperties ?? new ScalarPropertyModel[0]);
 
         public override string ToString() => $"[table: {MappedTable}, type: {ClrType.FullName}]";
     }

@@ -96,7 +96,64 @@ namespace Axis.Jupiter.Europa.Test
             {
                 new XmlTextWriter("Edmx.xml", Encoding.Default).Using(_writer => EdmxWriter.WriteEdmx(store, _writer));
             }
+        }
 
+        [TestMethod]
+        public void ObjectTransformationTest()
+        {
+            var cstring = "Data Source=(local);Initial Catalog=Europa_Test;User ID=sa;Password=developer;MultipleActiveResultSets=True;App=EntityFramework";
+
+            var contextConfig = new ContextConfiguration<DataStore>()
+                .UsingModule(new TestModuleConfig())
+                .WithConnection(cstring)
+                .WithInitializer(new DropCreateDatabaseIfModelChanges<DataStore>());
+
+            var r = new Random();
+            using (var store = new DataStore(contextConfig))
+            {
+                var users = new List<User>();
+                for(int cnt=0;cnt<10;cnt++)
+                {
+                    users.Add(new User
+                    {
+                        Status = r.Next(10),
+                        UserId = $"{RandomAlphaNumericGenerator.RandomAlpha(5)}@{RandomAlphaNumericGenerator.RandomAlpha(4)}.com",
+                        Bio = new Bio
+                        {
+                            FirstName = RandomAlphaNumericGenerator.RandomAlpha(5),
+                            LastName = RandomAlphaNumericGenerator.RandomAlpha(5),
+                            Nationality = RandomAlphaNumericGenerator.RandomAlpha(5),
+                            Dob = DateTime.Now
+                        },
+                        Contacts = new HashSet<Contact>(new[]
+                        {
+                            new Contact
+                            {
+                                Address = new Address
+                                {
+                                    State = RandomAlphaNumericGenerator.RandomAlpha(5),
+                                    Street = RandomAlphaNumericGenerator.RandomAlpha(5),
+                                    Town = RandomAlphaNumericGenerator.RandomAlpha(5)
+                                },
+                                Email = RandomAlphaNumericGenerator.RandomAlpha(5),
+                                Phone = RandomAlphaNumericGenerator.RandomAlpha(5),
+                                Status = r.Next(10)
+                            }
+                        })
+                    });
+                }
+
+                var randomUserId = RandomAlphaNumericGenerator.RandomAlpha(5);
+                var x = store.MappingFor<UserEntity>();
+                var start = DateTime.Now;
+                var ue = store.TransformEntity<UserEntity, User>(new UserEntity { UserId =  randomUserId}, new Dictionary<object, object>());
+                Console.WriteLine($"First conversion done in: {DateTime.Now - start}");
+
+                start = DateTime.Now;
+                for(int cnt=0;cnt<100;cnt++)
+                ue = store.TransformEntity<UserEntity, User>(new UserEntity { UserId = randomUserId }, new Dictionary<object, object>());
+                Console.WriteLine($"100 conversions done in: {DateTime.Now - start}");
+            }
         }
     }
 
@@ -118,6 +175,8 @@ namespace Axis.Jupiter.Europa.Test
     {
         public int Status { get; set; }
         public string UserId { get; set; }
+        public Bio Bio { get; set; }
+        public ICollection<Contact> Contacts { get; set; }
     }
     public class Bio: Base
     {
@@ -185,9 +244,9 @@ namespace Axis.Jupiter.Europa.Test
     public class UserEntity : Base
     {
         public BioEntity Bio { get; set; }
+        public ICollection<ContactEntity> Contacts { get; set; }
         public int Status { get; set; }
         public string UserId { get; set; }
-        public ICollection<ContactEntity> Contacts { get; set; }
     }
 
     public class BioEntity : Base

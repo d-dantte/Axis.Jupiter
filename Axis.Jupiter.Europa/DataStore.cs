@@ -13,6 +13,7 @@ using Axis.Luna.Operation;
 using System.Linq.Expressions;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Collections;
 
 namespace Axis.Jupiter.Europa
 {
@@ -297,23 +298,23 @@ namespace Axis.Jupiter.Europa
 
         private string PropertySignature(PropertyInfo propInfo) => $"[{propInfo.DeclaringType.MinimalAQName()}].{propInfo.Name}";
 
-        private Model TransformEntity<Entity, Model>(Entity entity, Dictionary<object, object> cache)
+        public Model TransformEntity<Entity, Model>(Entity entity, Dictionary<object, object> cache)
         where Entity : class 
-        where Model : class, new() => Transform(entity, typeof(Model), cache).Cast<Model>();
+        where Model : class, new() => TransformEntity(entity, typeof(Model), cache).Cast<Model>();
 
-        private object TransformEntity(object entity, Type modelType, Dictionary<object, object> cache)
+        public object TransformEntity(object entity, Type modelType, Dictionary<object, object> cache)
         {
             if (cache.ContainsKey(entity)) return cache[entity];
             else
             {
-                var _modelMap = ContextConfig.ModelMapConfigFor(modelType);
                 var _model = Activator.CreateInstance(modelType);
                 cache[entity] = _model;
                 var etype = entity.GetType();
 
-                var scalarProps = new HashSet<string>(MappingFor(etype).AllScalarProperties.Select(_sp => _sp.ClrProperty.Name));
-                var complexProps = new HashSet<string>(MappingFor(etype).ComplexProperties.Select(_cp => _cp.SourceProperty.Name));
-                var navigProps = new HashSet<string>(MappingFor(etype).NavigationProperties.Select(_np => _np.ClrProperty.Name));
+                var etypeModel = MappingFor(etype);
+                var scalarProps = new HashSet<string>(etypeModel.AllScalarProperties.Select(_sp => _sp.ClrProperty.Name));
+                var complexProps = new HashSet<string>(etypeModel.ComplexProperties.Select(_cp => _cp.SourceProperty.Name));
+                var navigProps = new HashSet<string>(etypeModel.NavigationProperties.Select(_np => _np.ClrProperty.Name));
 
                 modelType
                     .GetProperties()
@@ -329,63 +330,49 @@ namespace Axis.Jupiter.Europa
                         {
                             if (_eprop.PropertyType != _mprop.PropertyType) throw new Exception($"type mismatch for property {PropertySignature(_mprop)}");
 
-                            object val = null;
-                            if (!entity.TryPropertyValue(_mprop.Name, ref val)) return;
-                            MutatorCache.GetOrAdd(PropertySignature(_mprop), _msig =>
-                            {
-                                //create a method that assigns the property: ((Model)model).Property = (PropertyType)val;
-                                ParameterExpression pentity = Expression.Parameter(typeof(object)),
-                                                    pvalue = Expression.Parameter(typeof(object));
-                                var lambda = Expression.Lambda(
-                                    Expression.Block(
-                                        Expression.Assign(
-                                            Expression.MakeMemberAccess(
-                                                Expression.Convert(pentity, modelType),
-                                                _mprop
-                                            ),
-                                            Expression.Convert(pvalue, _mprop.PropertyType)
-                                        )
-                                    ),
-                                    pentity, pvalue);
-
-                                return (Action<object, object>)lambda.Compile();
-                            })
-                            .Invoke(_model, val);
+                            object val = entity.PropertyValue(_mprop.Name);
+                            MutatorCache
+                                .GetOrAdd(PropertySignature(_mprop), _msig => GenerateModelPropertyMutator(_mprop))
+                                .Invoke(_model, val);
                         }
 
-                        //else if its a complex property...
-                        else if (complexProps.Contains(_mprop.Name))
-                        {
-                            TransformComplexType(_eprop, _mprop);
-                        }
-
-                        //else if its a navigation property...
-                        else if (navigProps.Contains(_mprop.Name))
+                        //else if its a complex/navigation property...
+                        else if (complexProps.Contains(_mprop.Name) || navigProps.Contains(_mprop.Name))
                         {
                             //first, assign the scalar part of the navigation property...
+                            //if(navigProps.Contains(_mprop.Name))
+                            //{
+                            //    var navigProp = etypeModel.NavigationProperties.FirstOrDefault(_np => _np.ClrProperty.Name == _mprop.Name);
+                            //    navigProp.LocalKeys
+                            //        .Select(_lk => _lk.ClrProperty.Name)
+                            //        .PairWith(navigProp.ExternalKeys.Select(_k => navigProp.ClrProperty.PropertyType.GetProperty(_k)))
+                            //        .ForAll(_kvp =>
+                            //        {
+                            //            var _val = entity.PropertyValue(_kvp.Key);
+                            //            MutatorCache
+                            //                .GetOrAdd(PropertySignature(_kvp.Value), _msig => GenerateModelPropertyMutator(_kvp.Value))
+                            //                .Invoke(_model, _val);
+                            //        });
+                            //}
 
                             //now convert the object itself and assign it
-                            object val = TransformEntity(entity.PropertyValue(_mprop.Name), _mprop.PropertyType ,cache);
-                            MutatorCache.GetOrAdd(PropertySignature(_mprop), _msig =>
+                            var _ref = entity.PropertyValue(_mprop.Name);
+                            if (_ref != null)
                             {
-                                //create a method that assigns the property: ((Model)model).Property = (PropertyType)val;
-                                ParameterExpression pentity = Expression.Parameter(typeof(object)),
-                                                    pvalue = Expression.Parameter(typeof(object));
-                                var lambda = Expression.Lambda(
-                                    Expression.Block(
-                                        Expression.Assign(
-                                            Expression.MakeMemberAccess(
-                                                Expression.Convert(pentity, modelType),
-                                                _mprop
-                                            ),
-                                            Expression.Convert(pvalue, _mprop.PropertyType)
-                                        )
-                                    ),
-                                    pentity, pvalue);
+                                object val = TransformEntity(_ref, _mprop.PropertyType, cache);
+                                var valType = val.GetType();
 
-                                return (Action<object, object>)lambda.Compile();
-                            })
-                            .Invoke(_model, val);
+                                //collection object navigation property
+                                if (typeof(ICollection).IsAssignableFrom(valType) || valType.HasGenericAncestor(typeof(ICollection<>)))
+                                {
+
+                                }
+
+                                //not a collection object
+                                else MutatorCache
+                                    .GetOrAdd(PropertySignature(_mprop), _msig => GenerateModelPropertyMutator(_mprop))
+                                    .Invoke(_model, val);
+                            }
                         }
                     });
 
@@ -393,9 +380,25 @@ namespace Axis.Jupiter.Europa
             }
         }
 
-        private void TransformComplexType(PropertyInfo entityProperty, PropertyInfo modelProperty)
+        private Action<object, object> GenerateModelPropertyMutator(PropertyInfo property)
         {
+            //create a method that assigns the property: ((Model)model).Property = (PropertyType)val;
+            ParameterExpression pmodel = Expression.Parameter(typeof(object), "model"),
+                                pvalue = Expression.Parameter(typeof(object), "value");
+            var lambda = Expression.Lambda(
+                Expression.Block(
+                    Expression.Assign(
+                        Expression.MakeMemberAccess(
+                            Expression.Convert(pmodel, property.DeclaringType),
+                            property
+                        ),
+                        Expression.Convert(pvalue, property.PropertyType)
+                    ),
+                    Expression.Empty()
+                ),
+                pmodel, pvalue);
 
+            return (Action<object, object>)lambda.Compile();
         }
     }
 }
