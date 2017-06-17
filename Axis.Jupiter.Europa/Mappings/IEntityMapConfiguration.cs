@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Axis.Jupiter.Europa.Mappings
 {
@@ -7,7 +8,8 @@ namespace Axis.Jupiter.Europa.Mappings
         Type EntityType { get; }
         Type ModelType { get; }
 
-        void ExtractStoreMetadata(object entity, string serializedMetadata);
-        string InjectStoreMetadata(object entity);
+        void CopyToModel(object entity, object model, ModelConverter converter);
+
+        void CopyToEntity(object model, object entity, ModelConverter converter);
     }
 }

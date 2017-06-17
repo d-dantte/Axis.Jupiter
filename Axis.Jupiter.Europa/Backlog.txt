@@ -14,9 +14,9 @@
 -	IPersistenceCommands.DeleteBatch: gather all keys for all objects in the sequence, batch it by some number,
 	and generate a delete command (per batch) where objects in the db match the keys in that batch. We may want
 	to dump the keys to the delete records in a temp table so we can return it to the caller who can then use it
-	to remove entities from the local context.
+	to remove entities from the local context [Done].
 
 
 3.2.0/features ================================================================================================
 -	implement the bulk - delete, and bulk - update, using sql statements sent to the database containing 
-    appropriate conditions.
+    appropriate conditions. [Done]

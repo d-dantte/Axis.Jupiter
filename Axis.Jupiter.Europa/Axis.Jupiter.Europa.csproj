@@ -65,6 +65,7 @@
     <Compile Include="Module\IModuleConfigProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RootDbInitializer.cs" />
+    <Compile Include="Utils\Constants.cs" />
     <Compile Include="Utils\EntityMapping.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -76,9 +77,9 @@
     <Content Include="Utils\Edmx.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Axis.Jupiter.Kore\Axis.Jupiter.Kore.csproj">
+    <ProjectReference Include="..\Axis.Jupiter.Kore\Axis.Jupiter.csproj">
       <Project>{9ac7fffd-dc4d-497a-aa43-2e5d71f62fd7}</Project>
-      <Name>Axis.Jupiter.Kore</Name>
+      <Name>Axis.Jupiter</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

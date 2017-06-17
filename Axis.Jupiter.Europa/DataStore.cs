@@ -1,5 +1,4 @@
-﻿using static Axis.Jupiter.Europa.Extensions;
-
+﻿
 using Axis.Jupiter.Europa.Utils;
 using Axis.Luna.Extensions;
 using System;
@@ -8,18 +7,22 @@ using System.Data;
 using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Linq;
-using Axis.Jupiter.Kore.Commands;
 using Axis.Luna.Operation;
 using System.Linq.Expressions;
 using System.Collections.Concurrent;
-using System.Reflection;
-using System.Collections;
+using Axis.Jupiter.Commands;
+using Axis.Jupiter.Query;
 
 namespace Axis.Jupiter.Europa
 {
-    public class DataStore : DbContext, IPersistenceCommands, IQueryCommands, IDisposable
+    public class DataStore : DbContext, IPersistenceCommands, IEntityQuery, IDisposable
     {
         #region Properties
+        private static ConcurrentDictionary<string, Action<object, object>> MutatorCache = new ConcurrentDictionary<string, Action<object, object>>();
+        private static ConcurrentDictionary<string, Action<object, object>> HashSetAdderCache = new ConcurrentDictionary<string, Action<object, object>>();
+
+        private bool IsListToTableFunctionPrepared = false;
+
         internal ContextConfiguration<DataStore> ContextConfig { get; set; }
         internal Lazy<EFMappings> EFMappings { get; private set; }
         #endregion
@@ -59,64 +62,54 @@ namespace Axis.Jupiter.Europa
             ContextConfig.ConfiguredModules.ForAll(_module => _module.BuildModel(modelBuilder));
         }
 
-        public TypeModel MappingFor<Entity>() => EFMappings.Value.MappingFor<Entity>();
-        public TypeModel MappingFor(Type entityType) => EFMappings.Value.MappingFor(entityType);
+        public IMapping MappingFor<Entity>() => EFMappings.Value.MappingFor<Entity>();
+
+        public IMapping MappingFor(Type entityType) => EFMappings.Value.MappingFor(entityType);
 
         public BulkCopyOperation InsertBatch<Model>(SqlBulkCopyOptions options, params Model[] modelList)
         where Model : class => InsertBatch(options, modelList.AsEnumerable());
 
-        public BulkCopyOperation InsertBatch<Model>(SqlBulkCopyOptions options, IEnumerable<Model> modelList)
+        public BulkCopyOperation InsertBatch<Model>(SqlBulkCopyOptions options, IEnumerable<Model> modelList, int batchSize = 0, Func<string, string> tableNameOverride = null)
         where Model : class
         {
             var builder = new DbModelBuilder(DbModelBuilderVersion.Latest);
             var model = builder.Build(new SqlConnection(this.ContextConfig.ConnectionString));
-            var efMappings = this.EFMappings.Value;
+            var efMappings = EFMappings.Value;
+            batchSize = Math.Abs(batchSize);
 
             var bco = new BulkCopyOperation();
             var converter = new ModelConverter(this);
             var emc = ContextConfig.ModelMapConfigFor<Model>().ThrowIfNull($"Model Map Config not found for: {typeof(Model).FullName}");
-            var tentity = emc.EntityType;
-            tentity
-                .GetProperties()
 
-                //project an object representing properties and their corresponding metadata
-                .Select(_pinfo => new
+            //Get all tables that this entity may be mapped into - "tables" because in a TPT scenario, an entity may be shared into multiple tables
+            efMappings
+                .TableMappingsFor(emc.EntityType)
+                .ForAll(_tmapping =>
                 {
-                    Property = _pinfo,
-                    EFModel = efMappings.MappingFor(_pinfo.DeclaringType), //<-- In a TPH scenario, different properties may be mapped to different tables
-                    PropertyMap = efMappings.MappingFor(_pinfo.DeclaringType).ScalarProperties
-                                            .First(_p => PropertiesAreEquivalent(_p.ClrProperty, _pinfo))
-                })
-
-                //group the property metadata by the table they map to
-                .GroupBy(_pmap => _pmap.EFModel.MappedTable)
-                .ForAll(_tmap =>
-                {
-                    var tmapar = _tmap.ToArray();
-
                     //create bulk copy context
-                    var _bcxt = new SqlBulkCopy(this.ContextConfig.ConnectionString, options);
-                    _bcxt.DestinationTableName = _tmap.Key;
-                    bco.PayloadMap[_bcxt] = new DataTable { TableName = _tmap.Key };
+                    var _bcxt = new SqlBulkCopyContext(new SqlConnection(ContextConfig.ConnectionString), options);
+                    _bcxt.Context.DestinationTableName = tableNameOverride?.Invoke(_tmapping.Name) ?? _tmapping.Name;
+                    _bcxt.Context.BatchSize = batchSize > 0 ? batchSize : _bcxt.Context.BatchSize;
+                    bco.PayloadMap[_bcxt] = new DataTable { TableName = _tmapping.Name };
 
                     //map the columns on the context
-                    foreach (var _prop in tmapar) //<-- filter out only scalar properties
-                        if (_prop.PropertyMap.Key != ScalarPropertyModel.KeyMode.StoreGenerated)
-                            _bcxt.ColumnMappings.Add(_prop.PropertyMap.MappedColumn, _prop.PropertyMap.MappedColumn);
+                    var cols = _tmapping.ColumnModels.Where(_cm => _cm.MappedProperty.Key != ScalarPropertyMapping.KeyMode.StoreGenerated).ToArray();
+                    foreach (var _prop in cols) 
+                        _bcxt.Context.ColumnMappings.Add(_prop.MappedProperty.MappedColumn, _prop.MappedProperty.MappedColumn); //<-- dont include store generated ids
 
                     var columnsAreMapped = false;
-
+                    
                     //populate the datatable
                     foreach (var item in modelList.Select(_model => converter.ToEntity(_model)))
                     {
                         var values = new List<object>();
-                        tmapar.Where(_prop => _prop.PropertyMap.Key != ScalarPropertyModel.KeyMode.StoreGenerated).ForAll(_prop =>
+                        cols.ForAll(_prop =>
                         {
-                            var prop = _prop.PropertyMap;
+                            var prop = _prop.MappedProperty;
                             if (!columnsAreMapped)
                                 bco.PayloadMap[_bcxt].Columns.Add(prop.MappedColumn, Nullable.GetUnderlyingType(prop.ClrProperty.PropertyType) ?? prop.ClrProperty.PropertyType);
 
-                            values.Add(prop.ClrProperty.GetValue(item)); //<-- this should be optimized - proly by caching a delegate to the getter function
+                            values.Add(item.PropertyValue(prop.ClrProperty.Name)); //<-- this should be optimized - proly by caching a delegate to the getter function
                         });
 
                         columnsAreMapped = true;
@@ -128,7 +121,7 @@ namespace Axis.Jupiter.Europa
         }
 
 
-        #region IPersistenceCommands
+        #region IPersistenceCommands for Models
         
         #region Add
         public IOperation<Model> Add<Model>(Model d)
@@ -141,11 +134,12 @@ namespace Axis.Jupiter.Europa
             return converter.ToModel<Model>(entity);
         });
 
-        public IOperation<IEnumerable<Model>> AddBatch<Model>(IEnumerable<Model> models)
+        public IOperation AddBatch<Model>(IEnumerable<Model> models, int batchSize = 0)
         where Model : class => LazyOp.Try(() =>
         {
-            InsertBatch(SqlBulkCopyOptions.Default, models).Execute();
-            return models;
+            var bcpo = InsertBatch(SqlBulkCopyOptions.Default, models, batchSize);
+            
+            bcpo.Execute();
         });
         #endregion
 
@@ -155,7 +149,7 @@ namespace Axis.Jupiter.Europa
         {
             var emc = ContextConfig.ModelMapConfigFor<Model>().ThrowIfNull($"Model Map Config not found for: {typeof(Model).FullName}");
             var set = Set(emc.EntityType);
-            var local = GetLocally(set, d);
+            var local = GetLocally(d);
             var entity = local == null ?
                          set.Attach(d) :
                          local;
@@ -166,63 +160,118 @@ namespace Axis.Jupiter.Europa
             return new ModelConverter(this).ToModel<Model>(entity);
         });
 
-        public IOperation<IEnumerable<Model>> DeleteBatch<Model>(IEnumerable<Model> models)
+        public IOperation DeleteBatch<Model>(IEnumerable<Model> models, int batchSize = 0)
         where Model : class => LazyOp.Try(() =>
         {
-            var entitiesAreBeignTracked = Configuration.AutoDetectChangesEnabled;
-            Configuration.AutoDetectChangesEnabled = false; //<-- to improve performance for batch operations
-            try
-            {
-                var emc = ContextConfig.ModelMapConfigFor<Model>().ThrowIfNull($"Model Map Config not found for: {typeof(Model).FullName}");
-                var set = Set(emc.EntityType);
-                var deletedEntities = models
-                    .Select(_model =>
-                    {
-                        var local = GetLocally(set, _model);
-                        return local == null ?
-                               set.Attach(_model) :
-                               local;
-                    })
-                    .Pipe(set.RemoveRange);
+            PrepareListToTableFunction();
 
-                SaveChanges();
+            var mappingConfig = ContextConfig.ModelMapConfigFor<Model>();
+            EFMappings.Value
+                .TableMappingsFor(mappingConfig.EntityType)
 
-                var converter = new ModelConverter(this);
-                return deletedEntities
-                    .Cast<object>()
-                    .Select(_entity => converter.ToModel<Model>(_entity));
-            }
-            finally
-            {
-                Configuration.AutoDetectChangesEnabled = entitiesAreBeignTracked;
-            }
+                //make sure this model has an entity with a simple primary key (key with one value).
+                .Where(_tableMapping => _tableMapping.ColumnModels.Count(_sp => _sp.IsPrimaryKey) == 1) 
+
+                //make sure dependent tables are deleted first. Dependent tables are those whose primary keys are also foreign keys
+                .OrderByDescending(_tableMapping => _tableMapping.ColumnModels.First(_sp => _sp.IsPrimaryKey).IsForeignKey)
+
+                //run delete commands
+                .ForAll(_tableMapping =>
+                {
+                    var primaryKey = _tableMapping.ColumnModels.First(_p => _p.IsPrimaryKey);
+
+                    //construct delete statement passing the keylist as a parameter
+                    var deleteStatement = $"DELETE _target FROM {_tableMapping.Name} AS _target " +
+                                          $"INNER JOIN (SELECT CONVERT({primaryKey.DbType}, str) AS ID FROM {Constants.SQL_Function_ListToTable}(@list, @delimiter)) AS _joinList " +
+                                          $"ON _joinList.ID = _target.{primaryKey.Name};";
+
+                    var converter = new ModelConverter(this);
+                    batchSize = Math.Abs(batchSize);
+                    models
+                        .Batch(batchSize > 0 ? batchSize : int.MaxValue)
+                        .ForAll(_batch =>
+                        {
+                            var keyList = _batch
+                                .Select(_m => converter.ToEntity(_m))
+                                .Select(_e => _e.PropertyValue(primaryKey.MappedProperty.ClrProperty.Name).ToString()) //use a property serialization for specific types of values
+                                .JoinUsing(",");
+                            
+                            //execute the statement
+                            Database.ExecuteSqlCommand(deleteStatement, new SqlParameter("@list", keyList), new SqlParameter("@delimiter", ",")); //<-- ignore the result (for now)
+                        });
+                });
         });
         #endregion
 
         #region Update
-        public IOperation<Entity> Update<Entity>(Entity entity, Action<Entity> copyFunction = null)
-        where Entity : class => UpdateEntity(entity, copyFunction).Then(_e =>
+        public IOperation<Model> Update<Model>(Model entity, Action<Model> copyFunction = null)
+        where Model : class => UpdateEntity(entity, copyFunction).Then(_e =>
         {
-            this.SaveChanges();
+            SaveChanges();
             return _e;
         });
 
-        public IOperation<IEnumerable<Entity>> UpdateBatch<Entity>(IEnumerable<Entity> sequence, Action<Entity> copyFunction = null)
-        where Entity : class => LazyOp.Try(() =>
+        public IOperation UpdateBatch<Model>(IEnumerable<Model> models, int batchSize = 0)
+        where Model : class => LazyOp.Try(() =>
         {
-            var entitiesAreBeignTracked = this.Configuration.AutoDetectChangesEnabled;
-            this.Configuration.AutoDetectChangesEnabled = false; //<-- to improve performance for batch operations
-            try
-            {
-                return sequence
-                    .Select(_entity => UpdateEntity(_entity, copyFunction).Resolve())
-                    .ToList() //forces evaluation of the IEnumerable
-                    .UsingValue(_list => this.SaveChanges());
-            }
-            finally
-            {
-                this.Configuration.AutoDetectChangesEnabled = entitiesAreBeignTracked;
-            }
+            ///use bulk insert to push the values into a #TEMPORARY table on the db, then another sql statement to copy values from the temp table into the actual table.
+            var mappingConfig = ContextConfig.ModelMapConfigFor<Model>();
+            var entityMapping = MappingFor(mappingConfig.EntityType) as TypeMapping;
+            
+            //bulk copy values into the table
+            var converter = new ModelConverter(this);
+            batchSize = Math.Abs(batchSize);
+            models
+                .Batch(batchSize > 0 ? batchSize : int.MaxValue)
+                .ForAll(_batch =>
+                {
+                    //build bulkcopy operations
+                    var bcpo = InsertBatch(SqlBulkCopyOptions.Default, _batch, 0, _tname => $"#{_tname}");
+
+                    #region execute before bulk copy
+                    bcpo.PreExecute = _cxt =>
+                    {
+                        //create the temporary table that will be bulk-inserted into
+                        var stmt = $"SELECT * INTO {_cxt.Context.DestinationTableName} FROM {_cxt.Context.DestinationTableName.TrimStart("#")} WHERE 1 = 0;";
+
+                        var command = _cxt.Connection.CreateCommand();
+                        command.CommandText = stmt;
+                        command.ExecuteNonQuery();
+                    };
+                    #endregion
+
+                    #region execute after bulk copy
+                    bcpo.PostExecute = _cxt =>
+                    {
+                        var _tm = EFMappings.Value.TableMappings.First(_x => _x.Name == _cxt.Context.DestinationTableName.TrimStart("#"));
+
+                        //generate update statement per table
+                        var newUpdate = $"UPDATE _{_tm.Name}";
+
+                        //aggregate and add the "SET" commands
+                        newUpdate += "\n SET "+ _tm.ColumnModels
+                                .Where(_cm => !_cm.IsPrimaryKey)
+                                .Aggregate("", (__stmt, _cm) => $"{__stmt}\n _{_tm.Name}.{_cm.Name} = __{_tm.Name}.{_cm.Name},")
+                                .Pipe(__stmt => __stmt.TrimEnd(","));
+
+                        //FROM
+                        newUpdate += $"\n FROM {_tm.Name} AS _{_tm.Name}";
+
+                        //INNER JOIN
+                        newUpdate += $"\n INNER JOIN #{_tm.Name} AS __{_tm.Name}";
+
+                        //ON primarykey = #primarykey
+                        var pkey = _tm.ColumnModels.First(_cm => _cm.IsPrimaryKey);
+                        newUpdate += $"\n ON _{_tm.Name}.{pkey.Name} = __{_tm.Name}.{pkey.Name};";
+
+                        var command = _cxt.Connection.CreateCommand();
+                        command.CommandText = newUpdate;
+                        command.ExecuteNonQuery();
+                    };
+                    #endregion
+
+                    using (bcpo) bcpo.Execute();
+                });
         });
 
         private IOperation<Model> UpdateEntity<Model>(Model model, Action<Model> copyFunction)
@@ -230,13 +279,13 @@ namespace Axis.Jupiter.Europa
         {
             var emc = ContextConfig.ModelMapConfigFor<Model>().ThrowIfNull($"Model Map Config not found for: {typeof(Model).FullName}");
             var set = Set(emc.EntityType);
-            var local = GetLocally(set, model);
+            var local = GetLocally(model);
 
             //if the entity was found locally, apply the copy function or copy from the supplied object
             if (local != null)
             {
                 if (copyFunction == null) local.CopyFrom(model);
-                else copyFunction.Invoke((Model)local);
+                else copyFunction.Invoke(local);
             }
 
             //if the entity wasn't found locally, simply attach it
@@ -248,7 +297,18 @@ namespace Axis.Jupiter.Europa
         });
         #endregion
 
-        internal Entity GetLocally<Entity>(DbSet<Entity> set, Entity entity)
+        #endregion
+
+        #region IQueryCommands for Entities
+
+        public IQueryable<Entity> Query<Entity>(params Expression<Func<Entity, object>>[] includes) 
+        where Entity : class => includes.Aggregate(Set<Entity>() as IQueryable<Entity>, (_acc, _next) => _acc.Include(_next));
+
+        #endregion
+        
+        #region Misc
+
+        internal Entity GetLocally<Entity>(Entity entity)
         where Entity : class
         {
             //get the object keys. This CAN be cached, but SHOULD it be?
@@ -259,18 +319,18 @@ namespace Axis.Jupiter.Europa
                 .Select(_p => _p.ClrProperty.Name.ValuePair(entity.PropertyValue(_p.ClrProperty.Name)));
 
             //find the entity locally
-            return set.Local.FirstOrDefault(_e =>
+            return Set<Entity>().Local.FirstOrDefault(_e =>
             {
                 return keys.Select(_k => _e.PropertyValue(_k.Key))
                            .SequenceEqual(keys.Select(_k => _k.Value));
             });
         }
 
+        internal object GetLocally(object entity) => GetLocally(entity.GetType(), entity);
 
-        internal object GetLocally(DbSet set, object entity) => GetLocally(set, entity.GetType(), entity);
-        internal object GetLocally(DbSet set, Type entityType, object entity)
+        internal object GetLocally(Type entityType, object entity)
         => GetLocally(
-            set,
+            Set(entityType),
             //get the object keys. This CAN be cached, but SHOULD it be?
             MappingFor(entityType)
                 .ScalarProperties
@@ -285,120 +345,68 @@ namespace Axis.Jupiter.Europa
             return keys.Select(_k => _e.PropertyValue(_k.Key))
                        .SequenceEqual(keys.Select(_k => _k.Value));
         });
-        #endregion
 
-        #region IQueryCommands
 
-        public IQueryable<Entity> Query<Entity>(params Expression<Func<Entity, object>>[] includes) 
-        where Entity : class => includes.Aggregate(Set<Entity>() as IQueryable<Entity>, (_acc, _next) => _acc.Include(_next));
-
-        #endregion
-
-        private static ConcurrentDictionary<string, Action<object, object>> MutatorCache = new ConcurrentDictionary<string, Action<object, object>>();
-
-        private string PropertySignature(PropertyInfo propInfo) => $"[{propInfo.DeclaringType.MinimalAQName()}].{propInfo.Name}";
-
-        public Model TransformEntity<Entity, Model>(Entity entity, Dictionary<object, object> cache)
-        where Entity : class 
-        where Model : class, new() => TransformEntity(entity, typeof(Model), cache).Cast<Model>();
-
-        public object TransformEntity(object entity, Type modelType, Dictionary<object, object> cache)
+        private void PrepareListToTableFunction()
         {
-            if (cache.ContainsKey(entity)) return cache[entity];
-            else
+            if (!IsListToTableFunctionPrepared)
             {
-                var _model = Activator.CreateInstance(modelType);
-                cache[entity] = _model;
-                var etype = entity.GetType();
+                var checkFunction = $"SELECT OBJECT_ID('dbo.{Constants.SQL_Function_ListToTable}')";
+                if (Database.SqlQuery<int?>(checkFunction).FirstOrDefault() == null)
+                {
+                    #region Create Function Statement
+                    var createFunction = @"
+CREATE FUNCTION listToTable
+                 (@list      nvarchar(MAX),
+                  @delimiter nchar(1) = N',')
+      RETURNS @tbl TABLE (listpos int IDENTITY(1, 1) NOT NULL,
+                          str     varchar(4000)      NOT NULL) AS
 
-                var etypeModel = MappingFor(etype);
-                var scalarProps = new HashSet<string>(etypeModel.AllScalarProperties.Select(_sp => _sp.ClrProperty.Name));
-                var complexProps = new HashSet<string>(etypeModel.ComplexProperties.Select(_cp => _cp.SourceProperty.Name));
-                var navigProps = new HashSet<string>(etypeModel.NavigationProperties.Select(_np => _np.ClrProperty.Name));
+BEGIN
+   DECLARE @endpos   int,
+           @startpos int,
+           @textpos  int,
+           @chunklen smallint,
+           @tmpstr   nvarchar(4000),
+           @leftover nvarchar(4000),
+           @tmpval   nvarchar(4000)
 
-                modelType
-                    .GetProperties()
-                    .ForAll(_mprop =>
-                    {
-                        var _eprop = etype.GetProperty(_mprop.Name);
+   SET @textpos = 1
+   SET @leftover = ''
+   WHILE @textpos <= datalength(@list) / 2
+   BEGIN
+      SET @chunklen = 4000 - datalength(@leftover) / 2
+      SET @tmpstr = @leftover + substring(@list, @textpos, @chunklen)
+      SET @textpos = @textpos + @chunklen
 
-                        //property doesnt exist in the entity
-                        if (_eprop == null) return;
+      SET @startpos = 0
+      SET @endpos = charindex(@delimiter COLLATE Slovenian_BIN2, @tmpstr)
 
-                        //if this is a simple non-navigation property
-                        else if (scalarProps.Contains(_mprop.Name))
-                        {
-                            if (_eprop.PropertyType != _mprop.PropertyType) throw new Exception($"type mismatch for property {PropertySignature(_mprop)}");
+      WHILE @endpos > 0
+      BEGIN
+         SET @tmpval = ltrim(rtrim(substring(@tmpstr, @startpos + 1,
+                                             @endpos - @startpos - 1)))
+         INSERT @tbl (str) VALUES(@tmpval)
+         SET @startpos = @endpos
+         SET @endpos = charindex(@delimiter COLLATE Slovenian_BIN2,
+                                 @tmpstr, @startpos + 1)
+      END
 
-                            object val = entity.PropertyValue(_mprop.Name);
-                            MutatorCache
-                                .GetOrAdd(PropertySignature(_mprop), _msig => GenerateModelPropertyMutator(_mprop))
-                                .Invoke(_model, val);
-                        }
+      SET @leftover = right(@tmpstr, datalength(@tmpstr) / 2 - @startpos)
+   END
 
-                        //else if its a complex/navigation property...
-                        else if (complexProps.Contains(_mprop.Name) || navigProps.Contains(_mprop.Name))
-                        {
-                            //first, assign the scalar part of the navigation property...
-                            //if(navigProps.Contains(_mprop.Name))
-                            //{
-                            //    var navigProp = etypeModel.NavigationProperties.FirstOrDefault(_np => _np.ClrProperty.Name == _mprop.Name);
-                            //    navigProp.LocalKeys
-                            //        .Select(_lk => _lk.ClrProperty.Name)
-                            //        .PairWith(navigProp.ExternalKeys.Select(_k => navigProp.ClrProperty.PropertyType.GetProperty(_k)))
-                            //        .ForAll(_kvp =>
-                            //        {
-                            //            var _val = entity.PropertyValue(_kvp.Key);
-                            //            MutatorCache
-                            //                .GetOrAdd(PropertySignature(_kvp.Value), _msig => GenerateModelPropertyMutator(_kvp.Value))
-                            //                .Invoke(_model, _val);
-                            //        });
-                            //}
+   INSERT @tbl(str)
+      VALUES (ltrim(rtrim(@leftover)))
+   RETURN
+END
+";
+                    #endregion
+                    Database.ExecuteSqlCommand(createFunction);
 
-                            //now convert the object itself and assign it
-                            var _ref = entity.PropertyValue(_mprop.Name);
-                            if (_ref != null)
-                            {
-                                object val = TransformEntity(_ref, _mprop.PropertyType, cache);
-                                var valType = val.GetType();
-
-                                //collection object navigation property
-                                if (typeof(ICollection).IsAssignableFrom(valType) || valType.HasGenericAncestor(typeof(ICollection<>)))
-                                {
-
-                                }
-
-                                //not a collection object
-                                else MutatorCache
-                                    .GetOrAdd(PropertySignature(_mprop), _msig => GenerateModelPropertyMutator(_mprop))
-                                    .Invoke(_model, val);
-                            }
-                        }
-                    });
-
-                return _model;
+                    IsListToTableFunctionPrepared = true;
+                }
             }
         }
-
-        private Action<object, object> GenerateModelPropertyMutator(PropertyInfo property)
-        {
-            //create a method that assigns the property: ((Model)model).Property = (PropertyType)val;
-            ParameterExpression pmodel = Expression.Parameter(typeof(object), "model"),
-                                pvalue = Expression.Parameter(typeof(object), "value");
-            var lambda = Expression.Lambda(
-                Expression.Block(
-                    Expression.Assign(
-                        Expression.MakeMemberAccess(
-                            Expression.Convert(pmodel, property.DeclaringType),
-                            property
-                        ),
-                        Expression.Convert(pvalue, property.PropertyType)
-                    ),
-                    Expression.Empty()
-                ),
-                pmodel, pvalue);
-
-            return (Action<object, object>)lambda.Compile();
-        }
+        #endregion
     }
 }

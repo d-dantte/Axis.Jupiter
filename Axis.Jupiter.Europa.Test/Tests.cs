@@ -111,25 +111,17 @@ namespace Axis.Jupiter.Europa.Test
             var r = new Random();
             using (var store = new DataStore(contextConfig))
             {
-                var users = new List<User>();
-                for(int cnt=0;cnt<10;cnt++)
+                var randomUserId = RandomAlphaNumericGenerator.RandomAlpha(5);
+                var x = store.MappingFor<UserEntity>();
+                var start = DateTime.Now;
+                var _ue = new UserEntity
                 {
-                    users.Add(new User
-                    {
-                        Status = r.Next(10),
-                        UserId = $"{RandomAlphaNumericGenerator.RandomAlpha(5)}@{RandomAlphaNumericGenerator.RandomAlpha(4)}.com",
-                        Bio = new Bio
+                    UserId = randomUserId,
+                    Contacts = new HashSet<ContactEntity>(new[]
                         {
-                            FirstName = RandomAlphaNumericGenerator.RandomAlpha(5),
-                            LastName = RandomAlphaNumericGenerator.RandomAlpha(5),
-                            Nationality = RandomAlphaNumericGenerator.RandomAlpha(5),
-                            Dob = DateTime.Now
-                        },
-                        Contacts = new HashSet<Contact>(new[]
-                        {
-                            new Contact
+                            new ContactEntity
                             {
-                                Address = new Address
+                                Address = new AddressEntity
                                 {
                                     State = RandomAlphaNumericGenerator.RandomAlpha(5),
                                     Street = RandomAlphaNumericGenerator.RandomAlpha(5),
@@ -140,275 +132,194 @@ namespace Axis.Jupiter.Europa.Test
                                 Status = r.Next(10)
                             }
                         })
-                    });
-                }
-
-                var randomUserId = RandomAlphaNumericGenerator.RandomAlpha(5);
-                var x = store.MappingFor<UserEntity>();
-                var start = DateTime.Now;
-                var ue = store.TransformEntity<UserEntity, User>(new UserEntity { UserId =  randomUserId}, new Dictionary<object, object>());
+                };
+                var _bioe = new BioEntity
+                {
+                    FirstName = RandomAlphaNumericGenerator.RandomAlpha(5),
+                    LastName = RandomAlphaNumericGenerator.RandomAlpha(5),
+                    Nationality = RandomAlphaNumericGenerator.RandomAlpha(5),
+                    Dob = DateTime.Now,
+                    Owner = _ue
+                };
+                _ue.Bio = _bioe;
+                //var ue = store.TransformEntity<UserEntity, User>(_ue, new Dictionary<object, object>());
                 Console.WriteLine($"First conversion done in: {DateTime.Now - start}");
 
                 start = DateTime.Now;
-                for(int cnt=0;cnt<100;cnt++)
-                ue = store.TransformEntity<UserEntity, User>(new UserEntity { UserId = randomUserId }, new Dictionary<object, object>());
-                Console.WriteLine($"100 conversions done in: {DateTime.Now - start}");
+                var limit = 100000;
+                for (int cnt = 0; cnt < limit; cnt++)
+                {
+                    _ue = new UserEntity
+                    {
+                        UserId = randomUserId,
+                        Contacts = new HashSet<ContactEntity>(new[]
+                           {
+                            new ContactEntity
+                            {
+                                Address = new AddressEntity
+                                {
+                                    State = " ;dflkeaf lkfja;elkjfll",
+                                    Street = " ;dflkeaf lkfja;elkjfll",
+                                    Town = " ;dflkeaf lkfja;elkjfll"
+                                },
+                                Email = " ;dflkeaf lkfja;elkjfll",
+                                Phone = " ;dflkeaf lkfja;elkjfll",
+                                Status = r.Next(10)
+                            }
+                        })
+                    };
+                    _bioe = new BioEntity
+                    {
+                        FirstName = " ;dflkeaf lkfja;elkjfll",
+                        LastName = " ;dflkeaf lkfja;elkjfll",
+                        Nationality = " ;dflkeaf lkfja;elkjfll",
+                        Dob = DateTime.Now,
+                        Owner = _ue
+                    };
+                    _ue.Bio = _bioe;
+                    //ue = store.TransformEntity<UserEntity, User>(_ue, new Dictionary<object, object>());
+                }
+                Console.WriteLine($"{limit} conversions done in: {DateTime.Now - start}");
+            }
+        }
+
+        [TestMethod]
+        public void ModelConverterTest()
+        {
+            var cstring = "Data Source=(local);Initial Catalog=Europa_Test;User ID=sa;Password=developer;MultipleActiveResultSets=True;App=EntityFramework";
+
+            var contextConfig = new ContextConfiguration<DataStore>()
+                .UsingModule(new TestModuleConfig())
+                .WithConnection(cstring)
+                .WithInitializer(new DropCreateDatabaseIfModelChanges<DataStore>());
+            
+            using (var store = new DataStore(contextConfig))
+            {
+                var converter = new ModelConverter(store);
+                var ue = GenerateUserEntity();
+
+                var start = DateTime.Now;
+                var u = converter.ToModel<User>(ue).Cast<User>();
+                Console.WriteLine($"First conversion done in {DateTime.Now - start}");
+
+                var limit = 100000;
+                start = DateTime.Now;
+                for(int cnt=0;cnt<limit;cnt++)
+                {
+                    ue = GenerateUserEntity();
+                    u = converter.ToModel<User>(ue).Cast<User>();
+                }
+
+                Console.WriteLine($"{limit} conversions done in {DateTime.Now - start}");
+            }
+        }
+
+        private UserEntity GenerateUserEntity()
+        {
+            var _ue = new UserEntity
+            {
+                UserId = " ;dflkeaf lkfja;elkjfll",
+                Contacts = new HashSet<ContactEntity>(new[]
+                        {
+                            new ContactEntity
+                            {
+                                Address = new AddressEntity
+                                {
+                                    State = " ;dflkeaf lkfja;elkjfll",
+                                    Street = " ;dflkeaf lkfja;elkjfll",
+                                    Town = " ;dflkeaf lkfja;elkjfll"
+                                },
+                                Email = " ;dflkeaf lkfja;elkjfll",
+                                Phone = " ;dflkeaf lkfja;elkjfll",
+                                Status = 5
+                            }
+                        })
+            };
+            var _bioe = new BioEntity
+            {
+                FirstName = " ;dflkeaf lkfja;elkjfll",
+                LastName = " ;dflkeaf lkfja;elkjfll",
+                Nationality = " ;dflkeaf lkfja;elkjfll",
+                Dob = DateTime.Now,
+                Owner = _ue
+            };
+            _ue.Bio = _bioe;
+
+            return _ue;
+        }
+
+
+        [TestMethod]
+        public void MiscTest()
+        {
+            using (var dbContext = new DbContext("Data Source=(local);Initial Catalog=Europa_Test;User ID=sa;Password=developer;MultipleActiveResultSets=True;App=EntityFramework"))
+            {
+
+                var q = dbContext.Database.SqlQuery<int?>("SELECT OBJECT_ID('dbo.listToTable')");
+                Console.WriteLine(q.FirstOrDefault());
+
+                #region Create Function Statement
+                var createFunction = @"
+CREATE FUNCTION listToTable
+                 (@list      nvarchar(MAX),
+                  @delimiter nchar(1) = N',')
+      RETURNS @tbl TABLE (listpos int IDENTITY(1, 1) NOT NULL,
+                          str     varchar(4000)      NOT NULL) AS
+
+BEGIN
+   DECLARE @endpos   int,
+           @startpos int,
+           @textpos  int,
+           @chunklen smallint,
+           @tmpstr   nvarchar(4000),
+           @leftover nvarchar(4000),
+           @tmpval   nvarchar(4000)
+
+   SET @textpos = 1
+   SET @leftover = ''
+   WHILE @textpos <= datalength(@list) / 2
+   BEGIN
+      SET @chunklen = 4000 - datalength(@leftover) / 2
+      SET @tmpstr = @leftover + substring(@list, @textpos, @chunklen)
+      SET @textpos = @textpos + @chunklen
+
+      SET @startpos = 0
+      SET @endpos = charindex(@delimiter COLLATE Slovenian_BIN2, @tmpstr)
+
+      WHILE @endpos > 0
+      BEGIN
+         SET @tmpval = ltrim(rtrim(substring(@tmpstr, @startpos + 1,
+                                             @endpos - @startpos - 1)))
+         INSERT @tbl (str) VALUES(@tmpval)
+         SET @startpos = @endpos
+         SET @endpos = charindex(@delimiter COLLATE Slovenian_BIN2,
+                                 @tmpstr, @startpos + 1)
+      END
+
+      SET @leftover = right(@tmpstr, datalength(@tmpstr) / 2 - @startpos)
+   END
+
+   INSERT @tbl(str)
+      VALUES (ltrim(rtrim(@leftover)))
+   RETURN
+END
+";
+                #endregion
+                var r = dbContext.Database.ExecuteSqlCommand(createFunction);
+                Console.WriteLine(r);
+
+                q = dbContext.Database.SqlQuery<int?>("SELECT OBJECT_ID('dbo.listToTable')");
+                Console.WriteLine(q.FirstOrDefault());
+            }
+        }
+
+        [TestMethod]
+        public void MiscTest2()
+        {
+            using (var dbContext = new DbContext("Data Source=(local);Initial Catalog=EuropaTest;User ID=sa;Password=developer;MultipleActiveResultSets=True;App=EntityFramework"))
+            {
+                var q = dbContext.Database.ExecuteSqlCommand("select * into #abc1 from Contact where 1 = 0; select * into #abc2 from Mammal where 1 = 0;");
             }
         }
     }
-
-    #region Models
-    public abstract class Base
-    {
-        public Guid UUId { get; set; }
-        public DateTime CreatedOn { get; set; }
-        
-        public string StoreMetadata { get; set; }
-
-        public Base()
-        {
-            CreatedOn = DateTime.Now;
-            UUId = Guid.NewGuid();
-        }
-    }
-    public class User: Base
-    {
-        public int Status { get; set; }
-        public string UserId { get; set; }
-        public Bio Bio { get; set; }
-        public ICollection<Contact> Contacts { get; set; }
-    }
-    public class Bio: Base
-    {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-
-        public DateTime Dob { get; set; }
-        public string Nationality { get; set; }
-
-        public virtual User Owner { get; set; }
-    }
-    public class Contact: Base
-    {
-        public string Phone { get; set; }
-        public string Email { get; set; }
-        public int Status { get; set; }
-
-        public Address Address { get; set; }
-
-        public virtual User Owner { get; set; }
-    }
-
-    public class Address
-    {
-        public string Street { get; set; }
-        public string Town { get; set; }
-        public string State { get; set; }
-    }
-
-    public class Shape
-    {
-        public Guid UUId { get; set; }
-        public int SideCount { get; set; }
-        public string Name { get; set; }
-
-        //public User Owner { get; set; }
-    }
-    public class Circle:Shape
-    {
-        public double Radius { get; set; }
-    }
-    public class Rectangle: Shape
-    {
-        public double Length { get; set; }
-        public double Breath { get; set; }
-
-        //public User Owner { get; set; }
-    }
-    #endregion
-
-
-    #region Entities
-    public abstract class BaseEntity
-    {
-        public Guid UUId { get; set; }
-        public DateTime CreatedOn { get; set; }
-
-        public BaseEntity()
-        {
-            CreatedOn = DateTime.Now;
-            UUId = Guid.NewGuid();
-        }
-    }
-
-    public class UserEntity : Base
-    {
-        public BioEntity Bio { get; set; }
-        public ICollection<ContactEntity> Contacts { get; set; }
-        public int Status { get; set; }
-        public string UserId { get; set; }
-    }
-
-    public class BioEntity : Base
-    {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-
-        public DateTime Dob { get; set; }
-        public string Nationality { get; set; }
-        
-        public string OwnerId { get; set; }
-        public UserEntity Owner { get; set; }
-    }
-
-    public class ContactEntity : Base
-    {
-        public long StoreId { get; set; }
-        public string Phone { get; set; }
-        public string Email { get; set; }
-        public int Status { get; set; }
-
-        public AddressEntity Address { get; set; }
-
-        public UserEntity Owner { get; set; }
-        public string OwnerId { get; set; }
-    }
-
-    public class AddressEntity
-    {
-        public string Street { get; set; }
-        public string Town { get; set; }
-        public string State { get; set; }
-    }
-
-    public class ShapeEntity
-    {
-        public long StoreId { get; set; }
-        public Guid UUId { get; set; }
-        public int SideCount { get; set; }
-        public string Name { get; set; }
-
-        public UserEntity Owner { get; set; }
-        public string OwnerId { get; set; }
-    }
-    public class CircleEntity : ShapeEntity
-    {
-        public double Radius { get; set; }
-    }
-    public class RectangleEntity : ShapeEntity
-    {
-        public double Length { get; set; }
-        public double Breath { get; set; }
-    }
-    #endregion
-
-
-    #region Mappings
-
-    public class UserMapping : BaseEntityMapConfig<User, UserEntity>
-    {
-        public UserMapping()
-        {
-            HasKey(m => m.UserId);
-
-            Property(m => m.UUId)
-                .IsIndex("User_UUID", true);
-
-            HasOptional(m => m.Bio)
-                .WithRequired(m => m.Owner);
-        }
-    }
-
-    public class BioMapping : BaseEntityMapConfig<Bio, BioEntity>
-    {
-        public BioMapping()
-        {
-            HasKey(m => m.OwnerId);
-
-            Property(m => m.UUId)
-                .IsIndex("Bio_UUID", true);
-
-            HasRequired(m => m.Owner)
-                .WithOptional(m => m.Bio);
-        }
-    }
-
-    public class ShapeMapping : BaseEntityMapConfig<Shape, ShapeEntity>
-    {
-        public ShapeMapping(): base(false)
-        {
-            ToTable("Shapes__");
-
-            HasKey(m => m.StoreId);
-
-            Property(m => m.UUId)
-                .IsIndex("Shape_UUID", true);
-
-            HasRequired(m => m.Owner)
-                .WithMany()
-                .HasForeignKey(m => m.OwnerId);
-            
-            Map<CircleEntity>(m => m.Requires("Type").HasValue("Circle"));
-            Map<RectangleEntity>(m => m.Requires("Type").HasValue("Rect"));
-        }
-    }
-
-    public class AddressMapping: BaseComplexMapConfig<Address, AddressEntity>
-    {
-        public AddressMapping()
-        {
-        }
-    }
-
-    public class ContactMapping: BaseEntityMapConfig<Contact, ContactEntity>
-    {
-        public ContactMapping()
-        {
-            HasKey(m => m.StoreId);
-
-            Property(m => m.UUId)
-                .IsIndex("Contact_UUID", true);
-
-            HasRequired(m => m.Owner)
-                .WithMany(m => m.Contacts)
-                .HasForeignKey(m => m.OwnerId);
-        }
-    }
-    #endregion
-
-
-    #region ModuleConfig
-    public class TestModuleConfig : ModuleConfigProvider
-    {
-        public TestModuleConfig() 
-        : base(nameof(TestModuleConfig))
-        {
-            this.UsingConfiguration(new UserMapping())
-                .UsingConfiguration(new BioMapping())
-                .UsingConfiguration(new ContactMapping())
-                .UsingConfiguration(new AddressMapping())
-                .UsingConfiguration(new ShapeMapping());
-
-            //general model builder configurations
-            this.UsingModelBuilder(_mb =>
-            {
-                var baseMap = _mb.Entity<Base>();
-                baseMap.Ignore(_m => _m.StoreMetadata);
-
-                _mb.Ignore<Base>();
-            });
-
-            //naturally, seeding data comes here. lets seed with a root-user
-            this.WithContextAction(store =>
-            {
-                var userStore = store.Set<UserEntity>();
-                if(!userStore.Any()) userStore.Add(new UserEntity
-                {
-                    Status = 1,
-                    UserId = "@root"
-                });
-            });
-        }
-    }
-    #endregion
 }

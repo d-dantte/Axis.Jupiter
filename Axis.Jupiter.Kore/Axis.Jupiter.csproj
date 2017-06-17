@@ -7,8 +7,8 @@
     <ProjectGuid>{9AC7FFFD-DC4D-497A-AA43-2E5D71F62FD7}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Axis.Jupiter.Kore</RootNamespace>
-    <AssemblyName>Axis.Jupiter.Kore</AssemblyName>
+    <RootNamespace>Axis.Jupiter</RootNamespace>
+    <AssemblyName>Axis.Jupiter</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -45,7 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Commands\IPersistenceCommands.cs" />
-    <Compile Include="Commands\IQueryCommands.cs" />
+    <Compile Include="Query\IEntityQuery.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
