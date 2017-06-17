@@ -6,8 +6,8 @@
     <ProjectGuid>{EBA1C7D8-8919-4A18-A98E-236098DDC345}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Axis.Jupiter.Europa.Test</RootNamespace>
-    <AssemblyName>Axis.Jupiter.Europa.Test</AssemblyName>
+    <RootNamespace>Axis.Jupiter.Europa.Playground</RootNamespace>
+    <AssemblyName>Axis.Jupiter.Europa.Playground</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
