@@ -204,11 +204,27 @@ namespace Axis.Jupiter.Europa
         #endregion
 
         #region Update
-        public IOperation<Model> Update<Model>(Model entity, Action<Model> copyFunction = null)
-        where Model : class => UpdateEntity(entity, copyFunction).Then(_e =>
+        public IOperation<Model> Update<Model>(Model model)
+        where Model : class => LazyOp.Try(() =>
         {
+            var emc = ContextConfig.ModelMapConfigFor<Model>().ThrowIfNull($"Model Map Config not found for: {typeof(Model).FullName}");
+            var converter = new ModelConverter(this);
+            var entity = converter.ToEntity(model);
+            var local = GetLocally(entity);
+
+            //if the entity was found locally, copy from the supplied object
+            if (local != null)
+                local.CopyFrom(entity);
+
+            //if the entity wasn't found locally, simply attach it
+            else
+                Set(emc.EntityType).Attach(local = model);
+
+            Entry(local).State = EntityState.Modified;
+
             SaveChanges();
-            return _e;
+
+            return new ModelConverter(this).ToModel<Model>(local);
         });
 
         public IOperation UpdateBatch<Model>(IEnumerable<Model> models, int batchSize = 0)
@@ -272,28 +288,6 @@ namespace Axis.Jupiter.Europa
 
                     using (bcpo) bcpo.Execute();
                 });
-        });
-
-        private IOperation<Model> UpdateEntity<Model>(Model model, Action<Model> copyFunction)
-        where Model : class => LazyOp.Try(() =>
-        {
-            var emc = ContextConfig.ModelMapConfigFor<Model>().ThrowIfNull($"Model Map Config not found for: {typeof(Model).FullName}");
-            var set = Set(emc.EntityType);
-            var local = GetLocally(model);
-
-            //if the entity was found locally, apply the copy function or copy from the supplied object
-            if (local != null)
-            {
-                if (copyFunction == null) local.CopyFrom(model);
-                else copyFunction.Invoke(local);
-            }
-
-            //if the entity wasn't found locally, simply attach it
-            else set.Attach(local = model);
-
-            Entry(local).State = EntityState.Modified;
-
-            return new ModelConverter(this).ToModel<Model>(local);
         });
         #endregion
 
