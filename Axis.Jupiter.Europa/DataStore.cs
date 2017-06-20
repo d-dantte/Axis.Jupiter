@@ -213,12 +213,10 @@ namespace Axis.Jupiter.Europa
             var local = GetLocally(entity);
 
             //if the entity was found locally, copy from the supplied object
-            if (local != null)
-                local.CopyFrom(entity);
+            if (local != null) local.CopyFrom(entity);
 
             //if the entity wasn't found locally, simply attach it
-            else
-                Set(emc.EntityType).Attach(local = model);
+            else Set(emc.EntityType).Attach(local = model);
 
             Entry(local).State = EntityState.Modified;
 
@@ -323,15 +321,16 @@ namespace Axis.Jupiter.Europa
         internal object GetLocally(object entity) => GetLocally(entity.GetType(), entity);
 
         internal object GetLocally(Type entityType, object entity)
-        => GetLocally(
-            Set(entityType),
+        {
             //get the object keys. This CAN be cached, but SHOULD it be?
-            MappingFor(entityType)
+            var keys = MappingFor(entityType)
                 .ScalarProperties
                 .Where(_p => _p.IsKey)
                 .Select(_p => _p.ClrProperty.Name.ValuePair(entity.PropertyValue(_p.ClrProperty.Name)))
-                .ToArray(),
-            entity);
+                .ToArray();
+
+            return GetLocally(Set(entityType), keys, entity);
+        }
 
         internal object GetLocally(DbSet set, KeyValuePair<string, object>[] keys, object entity)
         => set.Local.Cast<object>().FirstOrDefault(_e =>
