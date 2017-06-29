@@ -10,8 +10,8 @@ using System.Linq;
 using Axis.Luna.Operation;
 using System.Linq.Expressions;
 using System.Collections.Concurrent;
-using Axis.Jupiter.Commands;
 using Axis.Jupiter.Query;
+using Axis.Jupiter.Commands;
 
 namespace Axis.Jupiter.Europa
 {
@@ -99,7 +99,7 @@ namespace Axis.Jupiter.Europa
 
                     var columnsAreMapped = false;
                     
-                    //populate the datatable
+                    //populate the data-table
                     foreach (var item in modelList.Select(_model => converter.ToEntity(_model)))
                     {
                         var values = new List<object>();

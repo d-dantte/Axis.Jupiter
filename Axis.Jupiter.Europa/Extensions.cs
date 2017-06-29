@@ -35,8 +35,8 @@ namespace Axis.Jupiter.Europa
 
 
         public static IEnumerable<Model> Transform<Entity, Model>(this IQueryable<Entity> entityQueryable, DataStore store)
-        where Model : class
-        where Entity : class, Model, new()
+        where Model : class, new()
+        where Entity : class, new()
         {
             var converter = new ModelConverter(store);
             return entityQueryable
