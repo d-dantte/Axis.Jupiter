@@ -1,5 +1,4 @@
 ﻿using Axis.Jupiter.Europa.Mappings;
-using Axis.Jupiter.Europa.Module;
 using Axis.Luna.Extensions;
 using System;
 using System.Collections.Generic;
@@ -37,17 +36,23 @@ namespace Axis.Jupiter.Europa
         public static IEnumerable<Model> Transform<Entity, Model>(this IQueryable<Entity> entityQueryable, DataStore store)
         where Model : class, new()
         where Entity : class, new()
+        => entityQueryable.AsEnumerable().Transform<Entity, Model>(store);
+
+
+        public static IEnumerable<Model> Transform<Entity, Model>(this IEnumerable<Entity> entities, DataStore store)
+        where Model : class, new()
+        where Entity : class, new()
         {
             var converter = new ModelConverter(store);
-            return entityQueryable
-                .AsEnumerable()
-                .Select(_entity => converter.ToModel<Model>(_entity));
+            return entities?.Select(_entity => converter.ToModel<Model>(_entity));
         }
 
         public static Model Transform<Entity, Model>(this Entity entity, DataStore store)
         where Model : class, new()
         where Entity : class, new()
         {
+            if (entity == null) return null;
+
             var converter = new ModelConverter(store);
             return converter.ToModel<Model>(entity);
         }

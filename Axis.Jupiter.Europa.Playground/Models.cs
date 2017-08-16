@@ -120,6 +120,17 @@ namespace Axis.Jupiter.Europa.Test
         public UserEntity Owner { get; set; }
     }
 
+    public class BioXEntity : BaseEntity
+    {
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+
+        public DateTime Dob { get; set; }
+        public string Nationality { get; set; }
+
+        public string ChemicalX { get; set; }
+    }
+
     public class ContactEntity : BaseEntity
     {
         public long StoreId { get; set; }
@@ -156,10 +167,12 @@ namespace Axis.Jupiter.Europa.Test
         public UserEntity Owner { get; set; }
         public string OwnerId { get; set; }
     }
+
     public class CircleEntity : ShapeEntity
     {
         public double Radius { get; set; }
     }
+
     public class RectangleEntity : ShapeEntity
     {
         public double Length { get; set; }
@@ -244,6 +257,34 @@ namespace Axis.Jupiter.Europa.Test
             model.Nationality = entity.Nationality;
             model.UUId = entity.UUId;
             model.Owner = converter.ToModel<User>(entity.Owner).Cast<User>();
+        }
+    }
+
+    public class BioXMapping : BaseEntityMapConfig<Bio, BioXEntity>
+    {
+        public BioXMapping()
+        {
+            HasKey(m => m.UUId);
+        }
+
+        public override void CopyToEntity(Bio model, BioXEntity entity, ModelConverter converter)
+        {
+            entity.CreatedOn = model.CreatedOn;
+            entity.Dob = model.Dob;
+            entity.FirstName = model.FirstName;
+            entity.LastName = model.LastName;
+            entity.Nationality = model.Nationality;
+            entity.UUId = model.UUId;
+        }
+
+        public override void CopyToModel(BioXEntity entity, Bio model, ModelConverter converter)
+        {
+            model.CreatedOn = entity.CreatedOn;
+            model.Dob = entity.Dob;
+            model.FirstName = entity.FirstName;
+            model.LastName = entity.LastName;
+            model.Nationality = entity.Nationality;
+            model.UUId = entity.UUId;
         }
 
         //public override void ExportStoreMetadata(Bio model, string serializedMetadata)
@@ -404,6 +445,7 @@ namespace Axis.Jupiter.Europa.Test
         {
             this.UsingConfiguration(new UserMapping())
                 .UsingConfiguration(new BioMapping())
+                .UsingConfiguration(new BioXMapping())
                 .UsingConfiguration(new ContactMapping())
                 .UsingConfiguration(new AddressMapping())
                 .UsingConfiguration(new ZipMapping())

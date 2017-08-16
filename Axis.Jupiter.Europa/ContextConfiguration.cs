@@ -15,7 +15,7 @@ namespace Axis.Jupiter.Europa
     where Context : DbContext
     {
         private DbModel _model { get; set; }
-        private Dictionary<string, IModuleConfigProvider> Modules { get; set; } = new Dictionary<string, IModuleConfigProvider>();
+        private Dictionary<string, ModuleConfigProvider> Modules { get; set; } = new Dictionary<string, ModuleConfigProvider>();
 
         internal IDatabaseInitializer<Context> DatabaseInitializer { get; private set; }
         internal string ConnectionString { get; private set; }
@@ -46,6 +46,6 @@ namespace Axis.Jupiter.Europa
 
         public ContextConfiguration<Context> WithEFConfiguraton(Action<DbContextConfiguration> contextConfig) => this.UsingValue(_ => EFContextConfiguration = contextConfig);
 
-        public ContextConfiguration<Context> UsingModule(IModuleConfigProvider module) => this.UsingValue(_ => Modules.Add(module.ModuleName, module));
+        public ContextConfiguration<Context> UsingModule(ModuleConfigProvider module) => this.UsingValue(_ => Modules.Add(module.ModuleName, module));
     }
 }

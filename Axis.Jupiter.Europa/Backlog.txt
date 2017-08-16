@@ -20,3 +20,5 @@
 3.2.0/features ================================================================================================
 -	implement the bulk - delete, and bulk - update, using sql statements sent to the database containing 
     appropriate conditions. [Done]
+-	fix issue with Extensions.Transform: the method constraint was set up wrongly. [Done]
+-	Test the Extensions.IsComplexMap, and Extensions.IsEntityMap methods.

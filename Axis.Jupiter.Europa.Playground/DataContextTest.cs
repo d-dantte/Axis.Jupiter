@@ -4,8 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Axis.Jupiter.Europa.Test
 {
@@ -34,7 +32,7 @@ namespace Axis.Jupiter.Europa.Test
                     var user = new User
                     {
                         Status = 1,
-                        UserId = $"@admin-{cnt}"
+                        UserId = $"@admin-{cnt+ 10000}"
                     };
 
                     var bio = new Bio

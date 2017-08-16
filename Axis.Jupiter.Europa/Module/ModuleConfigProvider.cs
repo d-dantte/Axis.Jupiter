@@ -21,7 +21,6 @@ namespace Axis.Jupiter.Europa.Module
         #endregion
 
         #region Methods
-
         private void Lock() => IsLocked = true;
 
         public IEnumerable<Type> ConfiguredTypes() => _entityConfigs.Keys.ToArray();
@@ -68,7 +67,7 @@ namespace Axis.Jupiter.Europa.Module
 
         private IModuleConfigProvider Try(Action action)
         {
-            IsLocked.ThrowIf(_locked => _locked, "Attempting to configure a locked config provider");
+            IsLocked.ThrowIf(true, "Attempting to configure a locked config provider");
 
             action();
             return this;

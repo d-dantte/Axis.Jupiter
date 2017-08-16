@@ -56,9 +56,4 @@ namespace Axis.Jupiter.Europa.Module
         /// </summary>
         bool IsLocked { get; }
     }
-
-    internal interface IEntityMapConfigProvider
-    {
-        IEnumerable<IEntityMapConfiguration> ConfiguredEntityMaps();
-    }
 }
