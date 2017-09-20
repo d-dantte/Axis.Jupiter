@@ -111,7 +111,6 @@ namespace Axis.Jupiter.Europa
             }
         }
 
-
         public Model ToModel<Model>(object entity)
         where Model : class
         {

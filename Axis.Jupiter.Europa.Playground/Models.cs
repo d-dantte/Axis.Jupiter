@@ -160,7 +160,7 @@ namespace Axis.Jupiter.Europa.Test
     public class ShapeEntity : BaseEntity
     {
         public long StoreId { get; set; }
-        public Guid UUId { get; set; }
+        new public Guid UUId { get; set; }
         public int SideCount { get; set; }
         public string Name { get; set; }
 
