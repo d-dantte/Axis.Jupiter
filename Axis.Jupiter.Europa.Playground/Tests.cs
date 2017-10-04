@@ -31,6 +31,15 @@ namespace Axis.Jupiter.Europa.Test
             using (var store = new DataStore(contextConfig))
             {
                 store.Set<UserEntity>().Any(); //<-- force db creation
+
+                var set = store.Set<UserEntity>();
+                var user = new UserEntity { UserId = "dafa", Status = 5, UUId = Guid.NewGuid() };
+                var x = store.Entry(user);
+                x.State = EntityState.Added;
+                var pu = set.FirstOrDefault();
+                var e = store.Entry(pu);
+                e.State = EntityState.Detached;
+                Assert.IsTrue(set.Local.Count == 0);
             }
         }
 
