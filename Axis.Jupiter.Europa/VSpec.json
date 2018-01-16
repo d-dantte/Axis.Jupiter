@@ -1,5 +1,6 @@
 ﻿{
   "IsAutoAssemblyCopyEnabled": false,
+  "IsCsprojDependencyLookupEnabled": true,
   "Includes": [
     {
       "Source": "$(OutputPath)$(AssemblyName).dll",
