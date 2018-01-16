@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>Axis.Jupiter.Europa</id>
+    <version>3.1.2</version>
+    <authors>Dantte</authors>
+    <owners>Axiis</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>
+      EF implementation for the Axis.Jupiter api.
+    </description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2017</copyright>
+    <tags>Axis Jupiter Europa EF Entity Framework Database </tags>
+    <dependencies>
+      <dependency id="Axis.Luna" version="3.1.0" />
+      <dependency id="EntityFramework" version="6.1.3" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Debug\Axis.Jupiter.Europa.dll" target="lib\net452" />
+  </files>
+</package>

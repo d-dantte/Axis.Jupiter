@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2002
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jupiter.Europa", "Jupiter.Europa", "{2275AA7D-018C-4262-AE95-69040B1773CE}"
 EndProject
@@ -18,7 +18,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter", "Axis.Jupite
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.Europa.Playground", "Axis.Jupiter.Europa.Playground\Axis.Jupiter.Europa.Playground.csproj", "{EBA1C7D8-8919-4A18-A98E-236098DDC345}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jupiter.Tests", "Jupiter.Tests", "{013ACAC3-B8BC-4FC3-B355-48195F169E17}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Console.Tests", "Console.Tests", "{013ACAC3-B8BC-4FC3-B355-48195F169E17}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.Tests", "Axis.Jupiter.Tests\Axis.Jupiter.Tests.csproj", "{9416364B-8833-4837-B21D-0CCC132AF095}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.Europa.Tests", "Axis.Jupiter.Europa.Tests\Axis.Jupiter.Europa.Tests.csproj", "{16DCA1AB-2D42-4F48-974F-9293F55E8C2A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,6 +42,14 @@ Global
 		{EBA1C7D8-8919-4A18-A98E-236098DDC345}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EBA1C7D8-8919-4A18-A98E-236098DDC345}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EBA1C7D8-8919-4A18-A98E-236098DDC345}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9416364B-8833-4837-B21D-0CCC132AF095}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9416364B-8833-4837-B21D-0CCC132AF095}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9416364B-8833-4837-B21D-0CCC132AF095}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9416364B-8833-4837-B21D-0CCC132AF095}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16DCA1AB-2D42-4F48-974F-9293F55E8C2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16DCA1AB-2D42-4F48-974F-9293F55E8C2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16DCA1AB-2D42-4F48-974F-9293F55E8C2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16DCA1AB-2D42-4F48-974F-9293F55E8C2A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,5 +58,10 @@ Global
 		{327C01D9-0ABD-4B87-A75B-2AE9C026CFEA} = {2275AA7D-018C-4262-AE95-69040B1773CE}
 		{9AC7FFFD-DC4D-497A-AA43-2E5D71F62FD7} = {D9DFA5E3-B90E-4757-A97E-C32C6A527637}
 		{EBA1C7D8-8919-4A18-A98E-236098DDC345} = {013ACAC3-B8BC-4FC3-B355-48195F169E17}
+		{9416364B-8833-4837-B21D-0CCC132AF095} = {D9DFA5E3-B90E-4757-A97E-C32C6A527637}
+		{16DCA1AB-2D42-4F48-974F-9293F55E8C2A} = {2275AA7D-018C-4262-AE95-69040B1773CE}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9F0B5B2A-2E7C-433F-A523-B5A8D60C2C28}
 	EndGlobalSection
 EndGlobal
