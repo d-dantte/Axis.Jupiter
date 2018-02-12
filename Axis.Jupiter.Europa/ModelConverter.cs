@@ -83,7 +83,9 @@ namespace Axis.Jupiter.Europa
                     .FirstOrDefault()
                     .ThrowIfNull("No Map Configuration found");
 
-                var entity = _conversionContext[model] = Activator.CreateInstance(mapconfig.EntityType);
+                var entity = _conversionContext[model] = mapconfig.EntityFactory?
+                    .Invoke(model) ??
+                    Activator.CreateInstance(mapconfig.EntityType);
 
                 mapconfig.CopyToEntity(model, entity, this);
 
@@ -102,7 +104,10 @@ namespace Axis.Jupiter.Europa
                     .FirstOrDefault(_map => _map.EntityType == typeof(Entity))
                     .ThrowIfNull("No Map Configuration found");
 
-                var entity = Activator.CreateInstance<Entity>();
+                var entity = mapconfig.EntityFactory?
+                    .Invoke(model) as Entity ??
+                    Activator.CreateInstance<Entity>();
+
                 _conversionContext[model] = entity;
 
                 mapconfig.CopyToEntity(model, entity, this);
@@ -122,7 +127,9 @@ namespace Axis.Jupiter.Europa
                     .FirstOrDefault()
                     .ThrowIfNull("No Map Configuration found");
 
-                var model = _conversionContext[entity] = Activator.CreateInstance<Model>();
+                var model = _conversionContext[entity] = mapconfig.ModelFactory?
+                    .Invoke(entity) ??
+                    Activator.CreateInstance<Model>();
 
                 mapconfig.CopyToModel(entity, model, this);
 
@@ -141,7 +148,10 @@ namespace Axis.Jupiter.Europa
                     .FirstOrDefault(_map => _map.EntityType == typeof(Entity))
                     .ThrowIfNull("No Map Configuration found");
 
-                var model = Activator.CreateInstance<Model>();
+                var model = mapconfig.ModelFactory?
+                    .Invoke(entity) as Model ??
+                    Activator.CreateInstance<Model>();
+
                 _conversionContext[entity] = model;
 
                 mapconfig.CopyToModel(entity, model, this);

@@ -19,6 +19,8 @@ namespace Axis.Jupiter.Europa.Mappings
         public Type EntityType { get; } = typeof(Entity);
         public Type ModelType { get; } = typeof(Model);
 
+        public Func<object, object> EntityFactory { get; protected set; }
+        public Func<object, object> ModelFactory { get; protected set; }
 
         void IEntityMapConfiguration.CopyToModel(object entity, object model, ModelConverter converter) => CopyToModel((Entity)entity, (Model)model, converter);
 
