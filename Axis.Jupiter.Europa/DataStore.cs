@@ -150,9 +150,7 @@ namespace Axis.Jupiter.Europa
             var emc = ContextConfig.ModelMapConfigFor<Model>().ThrowIfNull($"Model Map Config not found for: {typeof(Model).FullName}");
             var set = Set(emc.EntityType);
             var local = GetLocally(d);
-            var entity = local == null ?
-                         set.Attach(d) :
-                         local;
+            var entity = local ?? set.Attach(d);
 
             entity = set.Remove(entity);
             SaveChanges();
@@ -192,7 +190,7 @@ namespace Axis.Jupiter.Europa
                         .ForAll(_batch =>
                         {
                             var keyList = _batch
-                                .Select(_m => converter.ToEntity(_m))
+                                .Select(converter.ToEntity)
                                 .Select(_e => _e.PropertyValue(primaryKey.MappedProperty.ClrProperty.Name).ToString()) //use a property serialization for specific types of values
                                 .JoinUsing(",");
                             
