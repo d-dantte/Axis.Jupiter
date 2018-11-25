@@ -1,14 +1,11 @@
 ﻿using System.Collections.Generic;
 using Axis.Luna.Operation;
 
-namespace Axis.Jupiter
+namespace Axis.Jupiter.Contracts
 {
     public interface IStoreCommand
     {
         string StoreName { get; }
-
-
-        Operation<long> Commit();
 
         Operation<Model> Add<Model>(Model d) where Model : class;
         Operation AddBatch<Model>(IEnumerable<Model> d) where Model : class;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Axis.Jupiter.Contracts;
 using Axis.Luna.Operation;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,20 +26,13 @@ namespace Axis.Jupiter.EFCore
         }
 
 
-
-        public Operation<long> Commit()
-        => Operation.Try(async () =>
-        {
-            var result = await _context.SaveChangesAsync();
-            return (long)result;
-        });
-
-
         public Operation<Model> Add<Model>(Model d) 
         where Model : class => Operation.Try(async () =>
         {
             var entity = _transformer.ToEntity(d);
             entity = await _context.AddAsync(entity);
+
+            await _context.SaveChangesAsync();
 
             return _transformer.ToModel<Model>(entity);
         });
@@ -48,40 +42,50 @@ namespace Axis.Jupiter.EFCore
         {
             var entities = models.Select(_transformer.ToEntity);
             await _context.AddRangeAsync(entities);
+
+            await _context.SaveChangesAsync();
         });
 
 
         public Operation<Model> Update<Model>(Model d)
-        where Model : class => Operation.Try(() =>
+        where Model : class => Operation.Try(async () =>
         {
             var entity = _transformer.ToEntity(d);
             var entry = _context.Update(entity);
+
+            await _context.SaveChangesAsync();
 
             return _transformer.ToModel<Model>(entry.Entity);
         });
 
         public Operation UpdateBatch<Model>(IEnumerable<Model> models)
-        where Model : class => Operation.Try(() =>
+        where Model : class => Operation.Try(async () =>
         {
             var entities = models.Select(_transformer.ToEntity);
             _context.UpdateRange(entities);
+
+            await _context.SaveChangesAsync();
         });
 
 
         public Operation<Model> Delete<Model>(Model d)
-        where Model : class => Operation.Try(() =>
+        where Model : class => Operation.Try(async () =>
         {
             var entity = _transformer.ToEntity(d);
             var entry = _context.Remove(entity);
+
+            await _context.SaveChangesAsync();
 
             return _transformer.ToModel<Model>(entry.Entity);
         });
 
         public Operation DeleteBatch<Model>(IEnumerable<Model> models)
-        where Model : class => Operation.Try(() =>
+        where Model : class => Operation.Try(async () =>
         {
             var entities = models.Select(_transformer.ToEntity);
             _context.RemoveRange(entities);
+
+            await _context.SaveChangesAsync();
         });
     }
 }

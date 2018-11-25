@@ -1,4 +1,4 @@
-﻿namespace Axis.Jupiter
+﻿namespace Axis.Jupiter.Contracts
 {
     public interface IModelTransformer
     {

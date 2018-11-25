@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
+using Axis.Jupiter.Contracts;
 using Axis.Luna.Extensions;
 using Microsoft.EntityFrameworkCore;
 
