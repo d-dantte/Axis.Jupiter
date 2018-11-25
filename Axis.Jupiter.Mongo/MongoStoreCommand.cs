@@ -30,12 +30,6 @@ namespace Axis.Jupiter.Mongo
             _settings = settings;
         }
 
-
-        public Operation<long> Commit()
-        {
-            throw new NotImplementedException();
-        }
-
         public Operation<Model> Add<Model>(Model d) where Model : class
         {
             throw new NotImplementedException();
