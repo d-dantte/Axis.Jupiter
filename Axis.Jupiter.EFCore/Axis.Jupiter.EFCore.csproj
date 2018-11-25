@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFrameworks>netstandard2.0;netcoreapp2.1;net461;</TargetFrameworks>
+    <Version>4.0.0</Version>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageTags>data access persistence entity framework ef efcore</PackageTags>
+    <Description>EF implemenation of the jupitar api</Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -6,6 +6,6 @@
         IStoreQuery QueryFor(string storeId);
 
         IStoreCommand DefaultStoreCommand();
-        IStoreQuery DefaultStorQuery();
+        IStoreQuery DefaultStoreQuery();
     }
 }

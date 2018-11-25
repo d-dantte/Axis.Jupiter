@@ -6,6 +6,9 @@ namespace Axis.Jupiter
 {
     public interface IStoreQuery
     {
-        IQueryable<Entity> Query<Entity>(params Expression<Func<Entity, object>>[] entityPropertyPaths);
+        string StoreName { get; }
+
+        IQueryable<Entity> Query<Entity>(params Expression<Func<Entity, object>>[] entityPropertyPaths)
+            where Entity : class;
     }
 }
