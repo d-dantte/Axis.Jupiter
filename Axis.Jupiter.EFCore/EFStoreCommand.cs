@@ -15,7 +15,7 @@ namespace Axis.Jupiter.EFCore
         public string StoreName { get; }
 
 
-        public EFStoreCommand(string storeName, DbContext context, IModelTransformer transformer)
+        public EFStoreCommand(string storeName, IModelTransformer transformer, DbContext context)
         {
             StoreName = string.IsNullOrWhiteSpace(storeName)
                 ? throw new Exception("Invalid Store Name specified")
