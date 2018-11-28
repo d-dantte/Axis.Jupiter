@@ -6,6 +6,9 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>data access persistence</PackageTags>
     <Description>A unified and simplified abstraction for implementing data accessing and persistence</Description>
+    <PackageReleaseNotes>Breaking changes. Revamped the api, simplified and unified the interfaces. Added support for multiple stores per application, differentiated by a store name.</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/d-dantte/Axis.Jupiter</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/d-dantte/Axis.Jupiter</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
