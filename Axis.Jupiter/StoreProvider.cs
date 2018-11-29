@@ -8,43 +8,43 @@ namespace Axis.Jupiter
     public class StoreProvider
     {
         private readonly IServiceResolver _resolver;
-        private readonly StoreProviderMap _providerMap;
+        private readonly StoreMap _storeMap;
 
 
-        public StoreProvider(IServiceResolver resolver, StoreProviderMap providerMap)
+        public StoreProvider(IServiceResolver resolver, StoreMap storeMap)
         {
             ThrowNullArguments(
                 () => resolver,
-                () => providerMap);
+                () => storeMap);
 
             _resolver = resolver;
-            _providerMap = providerMap;
+            _storeMap = storeMap;
         }
 
         public IStoreCommand CommandFor(string storeId)
         {
-            var entry = _providerMap.StoreEntry(storeId) ?? throw new Exception($"Unmapped store id specified: {storeId}");
+            var entry = _storeMap.StoreEntry(storeId) ?? throw new Exception($"Unmapped store id specified: {storeId}");
             var command = _resolver.Resolve(entry.StoreCommandType) ?? throw new Exception($"Unregistered Store Command Type found: {entry.StoreCommandType.FullName}");
             return (command as IStoreCommand) ?? throw new Exception($"Invalid Store Command Type resolution");
         }
 
         public IStoreQuery QueryFor(string storeId)
         {
-            var entry = _providerMap.StoreEntry(storeId) ?? throw new Exception($"Unmapped store id specified: {storeId}");
+            var entry = _storeMap.StoreEntry(storeId) ?? throw new Exception($"Unmapped store id specified: {storeId}");
             var command = _resolver.Resolve(entry.StoreQueryType) ?? throw new Exception($"Unregistered Store Query Type found: {entry.StoreQueryType.FullName}");
             return (command as IStoreQuery) ?? throw new Exception($"Invalid Store Query Type resolution");
         }
 
         public IStoreCommand DefaultStoreCommand()
         {
-            var entry = _providerMap.Default ?? throw new Exception($"No Default Entry found");
+            var entry = _storeMap.Default ?? throw new Exception($"No Default Entry found");
             var command = _resolver.Resolve(entry.StoreCommandType) ?? throw new Exception($"Unregistered Store Command Type found: {entry.StoreCommandType.FullName}");
             return (command as IStoreCommand) ?? throw new Exception($"Invalid Store Command Type resolution");
         }
 
         public IStoreQuery DefaultStoreQuery()
         {
-            var entry = _providerMap.Default ?? throw new Exception($"No Default Entry found");
+            var entry = _storeMap.Default ?? throw new Exception($"No Default Entry found");
             var command = _resolver.Resolve(entry.StoreQueryType) ?? throw new Exception($"Unregistered Store Query Type found: {entry.StoreQueryType.FullName}");
             return (command as IStoreQuery) ?? throw new Exception($"Invalid Store Query Type resolution");
         }

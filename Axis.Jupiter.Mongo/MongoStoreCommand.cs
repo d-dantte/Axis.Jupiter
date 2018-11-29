@@ -31,19 +31,19 @@ namespace Axis.Jupiter.Mongo
         public string StoreName { get; }
 
 
-        public MongoStoreCommand(string storeName, string databaseLabel, 
+        public MongoStoreCommand(string storeName, string databaseLabel,
                                  EntityConfiguration entityConfiguration,
                                  MongoClient client, MongoDatabaseSettings settings = null)
         {
             StoreName = string.IsNullOrWhiteSpace(storeName)
-                ? throw new Exception("Invalid Store Name specified")
+                ? throw new ArgumentException("Invalid Store Name specified")
                 : storeName;
 
             _databaseLabel = string.IsNullOrWhiteSpace(databaseLabel)
-                ? throw new Exception("Invalid Database label specified")
+                ? throw new ArgumentException("Invalid Database label specified")
                 : databaseLabel;
 
-            _client = client ?? throw new Exception("Invalid Client specified: null");
+            _client = client ?? throw new ArgumentException("Invalid Client specified: null");
             _entityConfiguration = entityConfiguration ?? throw new Exception("Invalid Model Transformer specified: null");
             _settings = settings;
 
@@ -69,9 +69,9 @@ namespace Axis.Jupiter.Mongo
 
             //use fast-call to call the AddToCollection<Entity> method on the database object
             var method = _addToCollectionMethod.MakeGenericMethod(transformMap.EntityType);
-            var entity = _entityConfiguration.ModelTransformer.ToEntity<Model>(model);
+            var entity = _entityConfiguration.ModelTransformer.ToEntity(model, TransformCommand.Add);
             await this.CallFunc<Task>(method, entity);
-            return _entityConfiguration.ModelTransformer.ToModel<Model>(entity);
+            return _entityConfiguration.ModelTransformer.ToModel<Model>(entity, TransformCommand.Add);
         });
         
         public Operation AddBatch<Model>(IEnumerable<Model> models)
@@ -89,7 +89,7 @@ namespace Axis.Jupiter.Mongo
             var method = _addRangeToCollectionMethod.MakeGenericMethod(transformMap.EntityType);
             var entities = models
                 .Where(model => model != null)
-                .Select(_entityConfiguration.ModelTransformer.ToEntity);
+                .Select(model => _entityConfiguration.ModelTransformer.ToEntity(model, TransformCommand.Add));
 
             await this.CallFunc<Task>(method, entities.ToArray() as object); //so we take the entire array as one parameter into the method
         });
@@ -125,9 +125,9 @@ namespace Axis.Jupiter.Mongo
 
             //use fast-call to call the AddToCollection<Entity> method on the database object
             var method = _updateInCollectionMethod.MakeGenericMethod(transformMap.EntityType);
-            var entity = _entityConfiguration.ModelTransformer.ToEntity(model);
+            var entity = _entityConfiguration.ModelTransformer.ToEntity(model, TransformCommand.Update);
             await this.CallFunc<Task>(method, entity);
-            return _entityConfiguration.ModelTransformer.ToModel<Model>(entity);
+            return _entityConfiguration.ModelTransformer.ToModel<Model>(entity, TransformCommand.Update);
         });
 
         public Operation UpdateBatch<Model>(IEnumerable<Model> models)
@@ -145,7 +145,7 @@ namespace Axis.Jupiter.Mongo
             var method = _updateRangeInCollectionMethod.MakeGenericMethod(transformMap.EntityType);
             var entities = models
                 .Where(model => model != null)
-                .Select(_entityConfiguration.ModelTransformer.ToEntity);
+                .Select(model => _entityConfiguration.ModelTransformer.ToEntity(model, TransformCommand.Update));
 
             await this.CallFunc<Task>(method, entities.ToArray() as object); //so we take the entire array as one parameter into the method
         });
@@ -169,12 +169,6 @@ namespace Axis.Jupiter.Mongo
                 .ReplaceOneAsync(filter, entity);
         }
 
-        /// <summary>
-        /// Perform a bulk replace
-        /// </summary>
-        /// <typeparam name="Entity"></typeparam>
-        /// <param name="entities"></param>
-        /// <returns></returns>
         private async Task UpdateRangeInCollection<Entity>(Entity[] entities)
         {
             var info = _entityConfiguration
@@ -215,9 +209,9 @@ namespace Axis.Jupiter.Mongo
 
             //use fast-call to call the AddToCollection<Entity> method on the database object
             var method = _removeFromCollectionMethod.MakeGenericMethod(transformMap.EntityType);
-            var entity = _entityConfiguration.ModelTransformer.ToEntity(model);
+            var entity = _entityConfiguration.ModelTransformer.ToEntity(model, TransformCommand.Delete);
             await this.CallFunc<Task>(method, entity);
-            return _entityConfiguration.ModelTransformer.ToModel<Model>(entity);
+            return _entityConfiguration.ModelTransformer.ToModel<Model>(entity, TransformCommand.Delete);
         });
 
         public Operation DeleteBatch<Model>(IEnumerable<Model> models)
@@ -235,7 +229,7 @@ namespace Axis.Jupiter.Mongo
             var method = _removeRangeFromCollectionMethod.MakeGenericMethod(transformMap.EntityType);
             var entities = models
                 .Where(model => model != null)
-                .Select(_entityConfiguration.ModelTransformer.ToEntity);
+                .Select(model => _entityConfiguration.ModelTransformer.ToEntity(model, TransformCommand.Delete));
 
             await this.CallFunc<Task>(method, entities.ToArray() as object); //so we take the entire array as one parameter into the method
         });

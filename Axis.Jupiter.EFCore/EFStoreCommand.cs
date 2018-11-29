@@ -10,12 +10,12 @@ namespace Axis.Jupiter.EFCore
     public class EFStoreCommand: IStoreCommand
     {
         private readonly DbContext _context;
-        private readonly IModelTransformer _transformer;
+        private readonly ModelTransformer _transformer;
 
         public string StoreName { get; }
 
 
-        public EFStoreCommand(string storeName, IModelTransformer transformer, DbContext context)
+        public EFStoreCommand(string storeName, ModelTransformer transformer, DbContext context)
         {
             StoreName = string.IsNullOrWhiteSpace(storeName)
                 ? throw new Exception("Invalid Store Name specified")
@@ -26,63 +26,63 @@ namespace Axis.Jupiter.EFCore
         }
 
 
-        public Operation<Model> Add<Model>(Model d) 
+        public Operation<Model> Add<Model>(Model model) 
         where Model : class => Operation.Try(async () =>
         {
-            var entity = _transformer.ToEntity(d);
+            var entity = _transformer.ToEntity(model, TransformCommand.Add);
             entity = await _context.AddAsync(entity);
 
             await _context.SaveChangesAsync();
 
-            return _transformer.ToModel<Model>(entity);
+            return _transformer.ToModel<Model>(entity, TransformCommand.Add);
         });
 
         public Operation AddBatch<Model>(IEnumerable<Model> models)
         where Model : class => Operation.Try(async () =>
         {
-            var entities = models.Select(_transformer.ToEntity);
+            var entities = models.Select(model => _transformer.ToEntity(model, TransformCommand.Add));
             await _context.AddRangeAsync(entities);
 
             await _context.SaveChangesAsync();
         });
 
 
-        public Operation<Model> Update<Model>(Model d)
+        public Operation<Model> Update<Model>(Model model)
         where Model : class => Operation.Try(async () =>
         {
-            var entity = _transformer.ToEntity(d);
+            var entity = _transformer.ToEntity(model, TransformCommand.Update);
             var entry = _context.Update(entity);
 
             await _context.SaveChangesAsync();
 
-            return _transformer.ToModel<Model>(entry.Entity);
+            return _transformer.ToModel<Model>(entry.Entity, TransformCommand.Update);
         });
 
         public Operation UpdateBatch<Model>(IEnumerable<Model> models)
         where Model : class => Operation.Try(async () =>
         {
-            var entities = models.Select(_transformer.ToEntity);
+            var entities = models.Select(model => _transformer.ToEntity(model, TransformCommand.Update));
             _context.UpdateRange(entities);
 
             await _context.SaveChangesAsync();
         });
 
 
-        public Operation<Model> Delete<Model>(Model d)
+        public Operation<Model> Delete<Model>(Model model)
         where Model : class => Operation.Try(async () =>
         {
-            var entity = _transformer.ToEntity(d);
+            var entity = _transformer.ToEntity(model, TransformCommand.Update);
             var entry = _context.Remove(entity);
 
             await _context.SaveChangesAsync();
 
-            return _transformer.ToModel<Model>(entry.Entity);
+            return _transformer.ToModel<Model>(entry.Entity, TransformCommand.Delete);
         });
 
         public Operation DeleteBatch<Model>(IEnumerable<Model> models)
         where Model : class => Operation.Try(async () =>
         {
-            var entities = models.Select(_transformer.ToEntity);
+            var entities = models.Select(model => _transformer.ToEntity(model, TransformCommand.Delete));
             _context.RemoveRange(entities);
 
             await _context.SaveChangesAsync();

@@ -1,24 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Axis.Jupiter.Contracts;
 using Axis.Luna.Extensions;
 
 namespace Axis.Jupiter
 {
-    public class StoreProviderMap
+    public class StoreMap
     {
         private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>();
 
         public Entry Default { get; }
 
-        public StoreProviderMap(params Entry[] entries)
+        public StoreMap(params Entry[] entries)
         {
             (entries ?? new Entry[0])
                 .ForAll(AddEntry);
         }
 
-        public StoreProviderMap(Entry defaultEntry, params Entry[] entries)
+        public StoreMap(Entry defaultEntry, params Entry[] entries)
         : this(entries)
         {
             Default = defaultEntry ?? throw new ArgumentException("Invalid Default Entry specified: null");
@@ -42,7 +43,7 @@ namespace Axis.Jupiter
 
 
         public sealed class Entry
-        {
+        { 
             public string StoreName { get; set; }
             public Type StoreQueryType { get; set; }
             public Type StoreCommandType { get; set; }

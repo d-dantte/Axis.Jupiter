@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp2.1;net461;</TargetFrameworks>
-    <Version>4.0.0</Version>
+    <Version>4.1.0-pre-636791010381265097</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>data access persistence</PackageTags>
     <Description>A unified and simplified abstraction for implementing data accessing and persistence</Description>
