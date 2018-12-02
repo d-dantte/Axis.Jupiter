@@ -23,14 +23,14 @@ namespace Axis.Jupiter
 
         public IStoreCommand CommandFor(string storeId)
         {
-            var entry = _storeMap.StoreEntry(storeId) ?? throw new Exception($"Unmapped store id specified: {storeId}");
+            var entry = _storeMap.StoreEntry(storeId) ?? _storeMap.Default;
             var command = _resolver.Resolve(entry.StoreCommandType) ?? throw new Exception($"Unregistered Store Command Type found: {entry.StoreCommandType.FullName}");
             return (command as IStoreCommand) ?? throw new Exception($"Invalid Store Command Type resolution");
         }
 
         public IStoreQuery QueryFor(string storeId)
         {
-            var entry = _storeMap.StoreEntry(storeId) ?? throw new Exception($"Unmapped store id specified: {storeId}");
+            var entry = _storeMap.StoreEntry(storeId) ?? _storeMap.Default;
             var command = _resolver.Resolve(entry.StoreQueryType) ?? throw new Exception($"Unregistered Store Query Type found: {entry.StoreQueryType.FullName}");
             return (command as IStoreQuery) ?? throw new Exception($"Invalid Store Query Type resolution");
         }
