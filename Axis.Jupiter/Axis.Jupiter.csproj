@@ -2,13 +2,17 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp2.1;net461;</TargetFrameworks>
-    <Version>4.1.0-pre-636791010381265097</Version>
+    <Version>4.1.1</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>data access persistence</PackageTags>
     <Description>A unified and simplified abstraction for implementing data accessing and persistence</Description>
     <PackageReleaseNotes>Breaking changes. Revamped the api, simplified and unified the interfaces. Added support for multiple stores per application, differentiated by a store name.</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/d-dantte/Axis.Jupiter</RepositoryUrl>
     <PackageProjectUrl>https://github.com/d-dantte/Axis.Jupiter</PackageProjectUrl>
+    <Authors>Dantte</Authors>
+    <Company>Axiis</Company>
+    <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
   <ItemGroup>

@@ -2,10 +2,14 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp2.1;net461;</TargetFrameworks>
-    <Version>4.0.0</Version>
+    <Version>4.0.0-pre</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>data access persistence cassandradb</PackageTags>
     <Description>cassandra db implemenation of the jupitar api</Description>
+    <PackageProjectUrl>https://github.com/d-dantte/Axis.Jupiter</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/d-dantte/Axis.Jupiter</RepositoryUrl>
+    <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
 </Project>

@@ -2,11 +2,17 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp2.1;net461;</TargetFrameworks>
-    <Version>4.0.0-pre-636791010045724541</Version>
+    <Version>4.0.0-pre-636807202015448011</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>data access persistence cassandradb</PackageTags>
     <Description>mongo db implemenation of the jupitar api</Description>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/d-dantte/Axis.Jupiter</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/d-dantte/Axis.Jupiter</RepositoryUrl>
+    <Authors>Dantte</Authors>
+    <Company>Axiis</Company>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
   <ItemGroup>
