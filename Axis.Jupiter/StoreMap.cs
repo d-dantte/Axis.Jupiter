@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Axis.Jupiter.Contracts;
 using Axis.Luna.Extensions;
 
@@ -11,21 +9,19 @@ namespace Axis.Jupiter
     {
         private readonly Dictionary<string, Entry> _entries = new Dictionary<string, Entry>();
 
+        /// <summary>
+        /// This property must always have a value
+        /// </summary>
         public Entry Default { get; }
-
-        public StoreMap(params Entry[] entries)
-        {
-            (entries ?? new Entry[0])
-                .ForAll(AddEntry);
-        }
+        
 
         public StoreMap(Entry defaultEntry, params Entry[] entries)
-        : this(entries)
         {
             Default = defaultEntry ?? throw new ArgumentException("Invalid Default Entry specified: null");
         }
 
-        public Entry StoreEntry(string storeName) => _entries[storeName];
+        public Entry StoreEntry(string storeName) 
+        => _entries.TryGetValue(storeName, out var entry)? entry: null;
 
 
         private void AddEntry(Entry entry)
@@ -47,6 +43,13 @@ namespace Axis.Jupiter
             public string StoreName { get; set; }
             public Type StoreQueryType { get; set; }
             public Type StoreCommandType { get; set; }
+
+            public Entry CloneFor(string storeName) => new Entry
+            {
+                StoreName = storeName,
+                StoreQueryType = StoreQueryType,
+                StoreCommandType = StoreCommandType
+            };
 
             public void Validate()
             {

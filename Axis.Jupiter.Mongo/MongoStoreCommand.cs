@@ -28,17 +28,13 @@ namespace Axis.Jupiter.Mongo
 
         #endregion
 
-        public string StoreName { get; }
 
-
-        public MongoStoreCommand(string storeName, string databaseLabel,
-                                 EntityConfiguration entityConfiguration,
-                                 MongoClient client, MongoDatabaseSettings settings = null)
+        public MongoStoreCommand(
+            string databaseLabel,
+            EntityConfiguration entityConfiguration,
+            MongoClient client, 
+            MongoDatabaseSettings settings = null)
         {
-            StoreName = string.IsNullOrWhiteSpace(storeName)
-                ? throw new ArgumentException("Invalid Store Name specified")
-                : storeName;
-
             _databaseLabel = string.IsNullOrWhiteSpace(databaseLabel)
                 ? throw new ArgumentException("Invalid Database label specified")
                 : databaseLabel;

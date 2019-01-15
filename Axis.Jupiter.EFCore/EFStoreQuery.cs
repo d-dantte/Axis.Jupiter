@@ -10,16 +10,10 @@ namespace Axis.Jupiter.EFCore
     public class EFStoreQuery: IStoreQuery
     {
         private readonly DbContext _context;
+        
 
-        public string StoreName { get; }
-
-
-        public EFStoreQuery(string storeName, DbContext context)
+        public EFStoreQuery(DbContext context)
         {
-            StoreName = string.IsNullOrWhiteSpace(storeName)
-                ? throw new Exception("Invalid Store Name specified")
-                : storeName;
-
             _context = context ?? throw new Exception("Invalid Context specified: null");
         }
 
@@ -33,5 +27,6 @@ namespace Axis.Jupiter.EFCore
 
             return entityPropertyPaths.Aggregate(query, (current, path) => current.Include(path));
         }
+
     }
 }

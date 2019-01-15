@@ -5,8 +5,6 @@ namespace Axis.Jupiter.Contracts
 {
     public interface IStoreCommand
     {
-        string StoreName { get; }
-
         Operation<Model> Add<Model>(Model d) where Model : class;
         Operation AddBatch<Model>(IEnumerable<Model> d) where Model : class;
 

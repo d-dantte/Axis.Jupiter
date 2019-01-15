@@ -11,16 +11,13 @@ namespace Axis.Jupiter.Mongo
         private readonly MongoClient _client;
         private readonly string _databaseLabel;
         private readonly MongoDatabaseSettings _settings;
-
-        public string StoreName { get; }
         
 
-        public MongoStoreQuery(string storeName, string databaseLabel, MongoClient client, MongoDatabaseSettings settings = null)
+        public MongoStoreQuery(
+            string databaseLabel, 
+            MongoClient client, 
+            MongoDatabaseSettings settings = null)
         {
-            StoreName = string.IsNullOrWhiteSpace(storeName)
-                ? throw new Exception("Invalid Store Name specified")
-                : storeName;
-
             _databaseLabel = string.IsNullOrWhiteSpace(databaseLabel)
                 ? throw new Exception("Invalid Database label specified")
                 : databaseLabel;

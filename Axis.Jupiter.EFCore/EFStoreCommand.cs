@@ -12,15 +12,9 @@ namespace Axis.Jupiter.EFCore
         private readonly DbContext _context;
         private readonly ModelTransformer _transformer;
 
-        public string StoreName { get; }
 
-
-        public EFStoreCommand(string storeName, ModelTransformer transformer, DbContext context)
+        public EFStoreCommand(ModelTransformer transformer, DbContext context)
         {
-            StoreName = string.IsNullOrWhiteSpace(storeName)
-                ? throw new Exception("Invalid Store Name specified")
-                : storeName;
-
             _context = context ?? throw new Exception("Invalid Context specified: null");
             _transformer = transformer ?? throw new Exception("Invalid Model Transformer specified: null");
         }

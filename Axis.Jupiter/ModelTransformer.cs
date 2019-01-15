@@ -9,7 +9,8 @@ namespace Axis.Jupiter
     {
         Add,
         Delete,
-        Update
+        Update,
+        Query
     }
 
     public class ModelTransformer
