@@ -12,6 +12,8 @@ namespace Axis.Jupiter.EFCore
         private readonly DbContext _context;
         private readonly ModelTransformer _transformer;
 
+        public DbContext EFContext => _context;
+
 
         public EFStoreCommand(ModelTransformer transformer, DbContext context)
         {

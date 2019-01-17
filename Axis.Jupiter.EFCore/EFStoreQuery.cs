@@ -10,7 +10,9 @@ namespace Axis.Jupiter.EFCore
     public class EFStoreQuery: IStoreQuery
     {
         private readonly DbContext _context;
-        
+
+        public DbContext EFContext => _context;
+
 
         public EFStoreQuery(DbContext context)
         {
