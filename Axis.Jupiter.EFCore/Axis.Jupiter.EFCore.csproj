@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netcoreapp2.1;net461;</TargetFrameworks>
-    <Version>4.0.0-pre-636833277872363383</Version>
+    <Version>4.0.0-pre-636844467934095170</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageTags>data access persistence entity framework ef efcore</PackageTags>
     <Description>EF implemenation of the jupitar api</Description>

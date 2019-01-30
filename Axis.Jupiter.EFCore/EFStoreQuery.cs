@@ -7,7 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Axis.Jupiter.EFCore
 {
-    public class EFStoreQuery: IStoreQuery
+    public interface IEFStoreQuery: IStoreQuery
+    {
+        DbContext EFContext { get; }
+    }
+
+    public class EFStoreQuery: IEFStoreQuery
     {
         private readonly DbContext _context;
 

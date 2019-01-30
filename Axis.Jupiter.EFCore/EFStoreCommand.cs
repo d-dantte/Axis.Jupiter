@@ -7,7 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Axis.Jupiter.EFCore
 {
-    public class EFStoreCommand: IStoreCommand
+    public interface IEFStoreCommand: IStoreCommand
+    {
+        DbContext EFContext { get; }
+    }
+
+    public class EFStoreCommand: IEFStoreCommand
     {
         private readonly DbContext _context;
         private readonly ModelTransformer _transformer;
