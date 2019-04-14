@@ -1,23 +1,24 @@
-﻿using System;
+﻿using static Axis.Luna.Extensions.ExceptionExtension;
+
+using Axis.Proteus.Ioc;
+using System;
 using Axis.Jupiter.Contracts;
 using Axis.Jupiter.Models;
 using Axis.Luna.Extensions;
-using Axis.Proteus.Ioc;
-using static Axis.Luna.Extensions.ExceptionExtension;
 
-namespace Axis.Jupiter
+namespace Axis.Jupiter.Services
 {
-    public class StoreProvider
+    public class TypeStoreProvider
     {
         private readonly IServiceResolver _resolver;
         private readonly TypeStoreMap _storeMap;
 
 
-        public StoreProvider(IServiceResolver resolver, TypeStoreMap storeMap)
+        public TypeStoreProvider(IServiceResolver resolver, TypeStoreMap storeMap)
         {
             ThrowNullArguments(
                 nameof(resolver).ObjectPair(resolver),
-                nameof(storeMap).ObjectPair(storeMap));
+                nameof(storeMap).ObjectPair(resolver));
 
             _resolver = resolver;
             _storeMap = storeMap;
@@ -25,9 +26,7 @@ namespace Axis.Jupiter
 
         public IStoreCommand CommandFor(string typeId)
         {
-            var entry = _storeMap
-                .Entry(typeId) 
-                ?? throw new Exception($"Invalid Type Id: {typeId}");
+            var entry = EntryFor(typeId);
 
             var command = _resolver
                 .Resolve(entry.CommandServiceType) 
@@ -38,9 +37,7 @@ namespace Axis.Jupiter
 
         public IStoreQuery QueryFor(string typeId)
         {
-            var entry = _storeMap
-                .Entry(typeId) 
-                ?? throw new Exception($"Invalid Type Id: {typeId}");
+            var entry = EntryFor(typeId);
 
             var command = _resolver
                 .Resolve(entry.QueryServiceType) 
@@ -48,5 +45,14 @@ namespace Axis.Jupiter
 
             return (command as IStoreQuery) ?? throw new Exception($"Invalid Store Query Type resolution");
         }
+
+        public TypeStoreEntry EntryFor(string typeId)
+        {
+            return _storeMap
+                .Entry(typeId)
+                .ThrowIfNull(new Exception($"Unknown TypeId found: {typeId}"));
+        }
+
+        internal TypeStoreEntry[] Entries() => _storeMap.Entries();
     }
 }

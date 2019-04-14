@@ -30,15 +30,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jupiter.Callisto", "Jupiter
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter.CassandraDB", "Axis.Jupiter.CassandraDB\Axis.Jupiter.CassandraDB.csproj", "{38B76616-297F-4FBD-AAD3-F6231EDFE611}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.Tests", "Axis.Jupiter.Tests\Axis.Jupiter.Tests.csproj", "{1ED1E615-28E3-4780-A466-1DEA34618615}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter.Tests", "Axis.Jupiter.Tests\Axis.Jupiter.Tests.csproj", "{1ED1E615-28E3-4780-A466-1DEA34618615}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.CassandraDB.Tests", "Axis.Jupiter.CassandraDB.Tests\Axis.Jupiter.CassandraDB.Tests.csproj", "{3EFA94FA-A041-498A-9433-0DE5A94A0C4D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter.CassandraDB.Tests", "Axis.Jupiter.CassandraDB.Tests\Axis.Jupiter.CassandraDB.Tests.csproj", "{3EFA94FA-A041-498A-9433-0DE5A94A0C4D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.Mongo.Tests", "Axis.Jupiter.Mongo.Tests\Axis.Jupiter.Mongo.Tests.csproj", "{3B8EEBD4-1399-4CBC-A2AD-A4F885952ED3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter.Mongo.Tests", "Axis.Jupiter.Mongo.Tests\Axis.Jupiter.Mongo.Tests.csproj", "{3B8EEBD4-1399-4CBC-A2AD-A4F885952ED3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.EFCore.Tests", "Axis.Jupiter.EFCore.Tests\Axis.Jupiter.EFCore.Tests.csproj", "{C7D50B36-48D8-448B-BF84-B375FD7907BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter.EFCore.Tests", "Axis.Jupiter.EFCore.Tests\Axis.Jupiter.EFCore.Tests.csproj", "{C7D50B36-48D8-448B-BF84-B375FD7907BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.New4J.Tests", "Axis.Jupiter.New4J.Tests\Axis.Jupiter.New4J.Tests.csproj", "{918E7980-0616-46E9-A223-4457802A1F8F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter.New4J.Tests", "Axis.Jupiter.New4J.Tests\Axis.Jupiter.New4J.Tests.csproj", "{918E7980-0616-46E9-A223-4457802A1F8F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

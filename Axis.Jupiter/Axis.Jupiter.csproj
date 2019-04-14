@@ -16,8 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Axis.Luna.Extensions" Version="4.1.0" />
-    <PackageReference Include="Axis.Luna.Operation" Version="4.2.0" />
+    <PackageReference Include="Axis.Luna.Extensions" Version="4.3.0" />
+    <PackageReference Include="Axis.Luna.Operation" Version="4.3.0" />
     <PackageReference Include="Axis.Proteus" Version="4.1.0" />
   </ItemGroup>
 
