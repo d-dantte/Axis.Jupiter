@@ -32,26 +32,24 @@ namespace Axis.Jupiter.EFCore
         public Operation<Model> Add<Model>(Model model) 
         where Model : class => Operation.Try(async () =>
         {
-            var graph = _transformer.ToEntity(model, TransformCommand.Add);
+            var entity = _transformer.ToEntity(model, TransformCommand.Add);
+            entity = await _context.AddAsync(entity);
 
-            //validate
-            graph
-                .ThrowIfNull(new Exception("Invalid entity list"));
+            await _context.SaveChangesAsync();
 
-            //store the entity first
-            await AddEntityGraphs(graph);
-
-            return _transformer.ToModel<Model>(graph.Entity, TransformCommand.Add);
+            return _transformer.ToModel<Model>(entity, TransformCommand.Add);
         });
 
         public Operation AddBatch<Model>(IEnumerable<Model> models)
         where Model : class => Operation.Try(async () =>
         {
-            var graphs = models
+            var entities = models
                 .Select(model => _transformer.ToEntity(model, TransformCommand.Add))
                 .ThrowIf(ContainsNull, new Exception("Invalid Graph List: one of the object-transformation returned null"));
 
-            await AddEntityGraphs(graphs.ToArray());
+            await _context.AddRangeAsync(entities);
+
+            await _context.SaveChangesAsync();
         });
 
 
@@ -102,9 +100,42 @@ namespace Axis.Jupiter.EFCore
             string collectionProperty,
             Child[] children)
             where Parent : class
-            where Child : class => Operation.Try(() =>
+            where Child : class => Operation.Try(async () =>
         {
-            throw new NotImplementedException();
+            var refs = children
+                .Select(child => _transformer.ToCollectionRef(
+                    parent,
+                    collectionProperty,
+                    child,
+                    TransformCommand.Add))
+                .ToArray()
+                .ThrowIf(ContainsNull, new Exception("Invalid Entity Ref found"));
+
+            if (refs.Length == 0)
+                throw new Exception("");
+
+
+            //add?
+            if (refs.All(IsManyToManyRef))
+                await refs
+                    .Select(@ref => @ref.Entity)
+                    .ToArray()
+                    .Pipe(_context.AddRangeAsync);
+
+            //update?
+            else if (refs.All(IsOneToManyRef))
+                refs.Select(@ref => @ref.Entity)
+                    .ToArray()
+                    .Pipe(_context.UpdateRange);
+
+            //twilight zone
+            else throw new Exception("Invalid Entity Ref found");
+
+            await _context.SaveChangesAsync();
+
+            return refs
+                .Select(@ref => @ref.Entity)
+                .TransformAll<Child>(_transformer);
         });
 
         public Operation<Child[]> RemoveFromCollection<Parent, Child>(
@@ -112,61 +143,48 @@ namespace Axis.Jupiter.EFCore
             string collectionProperty,
             Child[] children)
             where Parent : class
-            where Child : class => Operation.Try(() =>
-        {
-            throw new NotImplementedException();
-        });
+            where Child : class => Operation.Try(async () =>
+            {
+                var refs = children
+                    .Select(child => _transformer.ToCollectionRef(
+                        parent,
+                        collectionProperty,
+                        child,
+                        TransformCommand.Add))
+                    .ToArray()
+                    .ThrowIf(ContainsNull, new Exception("Invalid Entity Ref found"));
+
+                if (refs.Length == 0)
+                    throw new Exception("");
 
 
-        /// <summary>
-        /// Using the TypeTransformer, return an EntityGraph object that represents all the distinct objects that would be added to the
-        /// database. Rules governing how the EntityGraph is treated are as follows:
-        /// 1. Save the EntityGraph.Entity.
-        /// 2. Run through all Secondary EntityRefs, call the Ref.BindId to assign the new Id gotten in step 1.
-        /// 3. Run through all ListRefs, call Ref.BindId to assign the new Id gotten in step 1.
-        /// 4. Gather the EntityGraphs from 2 & 3 and Recursively call <c>AddEntityGraphs</c> on the combination of them.
-        /// </summary>
-        /// <typeparam name="Model"></typeparam>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        private Operation AddEntityGraphs(params EntityGraph[] graphs)
-        => Operation.Try(async () =>
-        {
-            await graphs
-                .Select(graph => graph.Entity)
-                .ToArray()
-                .Pipe(_context.AddRangeAsync);
+                //remove?
+                if (refs.All(IsManyToManyRef))
+                    refs.Select(@ref => @ref.Entity)
+                        .ToArray()
+                        .Pipe(_context.RemoveRange);
 
-            await _context.SaveChangesAsync(true);
+                //update?
+                else if (refs.All(IsOneToManyRef))
+                    refs.Select(@ref => @ref.Entity)
+                        .ToArray()
+                        .Pipe(_context.UpdateRange);
 
-            //get all secondary entity-refs
-            var refNodes = graphs
-                .SelectMany(graph => graph.EntityRefs
-                .Where(IsSecondaryRef))
-                .Select(@ref =>
-                {
-                    @ref.BindId.Invoke();
-                    return @ref.Ref;
-                })
-                .ToList();
+                //twilight zone
+                else throw new Exception("Invalid Entity Ref found");
 
-            //get all list-refs
-            graphs
-                .SelectMany(graph => graph.ListRefs)
-                .SelectMany(list =>
-                {
-                    list.BindId.Invoke();
-                    return list.Entities;
-                })
-                .Pipe(refNodes.AddRange);
+                await _context.SaveChangesAsync();
 
-            if (refNodes.Count > 0)
-                await AddEntityGraphs(refNodes.ToArray());
-        });
+                return refs
+                    .Select(@ref => @ref.Entity)
+                    .TransformAll<Child>(_transformer);
+            });
 
 
-        private static bool IsSecondaryRef(EntityRef @ref) => @ref?.RefType == RefType.Secondary;
+        private static bool IsManyToManyRef(EntityRef @ref) => @ref?.RefType == EntityRefType.ManyToMany;
 
-        private static bool ContainsNull(IEnumerable<EntityGraph> graphs)  => graphs?.Any(graph => graph == null) == true;
+        private static bool IsOneToManyRef(EntityRef @ref) => @ref?.RefType == EntityRefType.OneToMany;
+
+        private static bool ContainsNull<T>(IEnumerable<T> list)  => list?.Any(obj => obj == null) == true;
     }
 }

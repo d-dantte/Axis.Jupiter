@@ -5,14 +5,12 @@ VisualStudioVersion = 15.0.27004.2002
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jupiter.Europa", "Jupiter.Europa", "{2275AA7D-018C-4262-AE95-69040B1773CE}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D3CD01A2-5EEE-45BF-BB42-D84EEA9F806D}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Solution Items", ".Solution Items", "{D3CD01A2-5EEE-45BF-BB42-D84EEA9F806D}"
 	ProjectSection(SolutionItems) = preProject
 		BackLog.txt = BackLog.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jupiter", "Jupiter", "{D9DFA5E3-B90E-4757-A97E-C32C6A527637}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Console.Tests", "Console.Tests", "{013ACAC3-B8BC-4FC3-B355-48195F169E17}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter", "Axis.Jupiter\Axis.Jupiter.csproj", "{569129E0-3BE9-430F-8B23-0539D64B89FB}"
 EndProject
@@ -39,6 +37,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter.EFCore.Tests", "Axis.Jupiter.EFCore.Tests\Axis.Jupiter.EFCore.Tests.csproj", "{C7D50B36-48D8-448B-BF84-B375FD7907BE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Jupiter.New4J.Tests", "Axis.Jupiter.New4J.Tests\Axis.Jupiter.New4J.Tests.csproj", "{918E7980-0616-46E9-A223-4457802A1F8F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jupiter.Thebe", "Jupiter.Thebe", "{042C9FF2-BFEB-46A4-96E9-25917495CEF6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.CouchDb", "Axis.Jupiter.CouchDb\Axis.Jupiter.CouchDb.csproj", "{A06DF8DA-E021-49C3-9498-AFBC79F81E69}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.CouchDb.Tests", "Axis.Jupiter.CouchDb.Tests\Axis.Jupiter.CouchDb.Tests.csproj", "{4017C531-F54A-44C2-A1E2-5AA4A3AF5D03}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Jupiter.EFCore.Console", "Axis.Jupiter.EFCore.Console\Axis.Jupiter.EFCore.Console.csproj", "{1CC13733-3271-41E5-93E1-73FDB99DD4CD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -86,6 +92,18 @@ Global
 		{918E7980-0616-46E9-A223-4457802A1F8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{918E7980-0616-46E9-A223-4457802A1F8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{918E7980-0616-46E9-A223-4457802A1F8F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A06DF8DA-E021-49C3-9498-AFBC79F81E69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A06DF8DA-E021-49C3-9498-AFBC79F81E69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A06DF8DA-E021-49C3-9498-AFBC79F81E69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A06DF8DA-E021-49C3-9498-AFBC79F81E69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4017C531-F54A-44C2-A1E2-5AA4A3AF5D03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4017C531-F54A-44C2-A1E2-5AA4A3AF5D03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4017C531-F54A-44C2-A1E2-5AA4A3AF5D03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4017C531-F54A-44C2-A1E2-5AA4A3AF5D03}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CC13733-3271-41E5-93E1-73FDB99DD4CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CC13733-3271-41E5-93E1-73FDB99DD4CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CC13733-3271-41E5-93E1-73FDB99DD4CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CC13733-3271-41E5-93E1-73FDB99DD4CD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -101,6 +119,9 @@ Global
 		{3B8EEBD4-1399-4CBC-A2AD-A4F885952ED3} = {691B9794-1C15-44A0-8B3F-4543A12929BC}
 		{C7D50B36-48D8-448B-BF84-B375FD7907BE} = {2275AA7D-018C-4262-AE95-69040B1773CE}
 		{918E7980-0616-46E9-A223-4457802A1F8F} = {4FC61F20-023C-437A-AE99-D534B9FC58CD}
+		{A06DF8DA-E021-49C3-9498-AFBC79F81E69} = {042C9FF2-BFEB-46A4-96E9-25917495CEF6}
+		{4017C531-F54A-44C2-A1E2-5AA4A3AF5D03} = {042C9FF2-BFEB-46A4-96E9-25917495CEF6}
+		{1CC13733-3271-41E5-93E1-73FDB99DD4CD} = {2275AA7D-018C-4262-AE95-69040B1773CE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9F0B5B2A-2E7C-433F-A523-B5A8D60C2C28}

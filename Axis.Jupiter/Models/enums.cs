@@ -1,17 +1,17 @@
 ﻿
 namespace Axis.Jupiter.Models
 {
-
-    public enum RefType
+    public enum EntityRefType
     {
-        Primary,
-        Secondary
+        OneToOne,
+        OneToMany,
+        ManyToMany
     }
 
-    public enum ListType
+    public enum EntityRefRelativity
     {
-        Append,
-        Remove
+        Source,
+        Destination
     }
 
     public enum TransformCommand

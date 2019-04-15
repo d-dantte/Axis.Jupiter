@@ -40,37 +40,34 @@ namespace Axis.Jupiter.Services
         /// <param name="command"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        public EntityGraph ToEntity<Model>(Model model, TransformCommand command, TypeTransformContext context = null)
+        public object ToEntity<Model>(Model model, TransformCommand command, TypeTransformContext context = null)
         {
             if (model == null)
                 return null;
 
             if (context?.Transformations.ContainsKey(model) == true)
-                return (EntityGraph) context.Transformations[model];
+                return context.Transformations[model];
 
             var transform = Transforms()
                 .FirstOrDefault(t => t.ModelType == typeof(Model))
                 .ThrowIfNull($"Transform not found for model: {typeof(Model).FullName}");
 
-            var entity = new EntityGraph
-            {
-                Entity = transform.NewEntity != null
-                    ? transform.NewEntity(model) ?? throw new Exception($"Entity creation failed for: {transform.EntityType.FullName}")
-                    : Activator.CreateInstance(transform.EntityType)
-            };
+            var entity = transform.NewEntity != null
+                ? transform.NewEntity(model) ?? throw new Exception($"Entity creation failed for: {transform.EntityType.FullName}")
+                : Activator.CreateInstance(transform.EntityType);
 
             if (context == null)
                 context = new TypeTransformContext { Transformer = this };
 
             context.Transformations[model] = entity;
 
-            return transform.ToEntity.Invoke(model, new EntityGraph { Entity = entity }, command, context);
+            return transform.ToEntity.Invoke(model, entity, command, context);
         }
 
-        public EntityGraph ToCollectionEntity<ParentModel, ChildModel>(
+        public EntityRef ToCollectionRef<ParentModel, ChildModel>(
             ParentModel parent, 
-            ChildModel child,
             string collectionProperty,
+            ChildModel child,
             TransformCommand command,
             TypeTransformContext context = null)
         {
@@ -78,29 +75,27 @@ namespace Axis.Jupiter.Services
                 return null;
 
             if (context?.Transformations.ContainsKey(child) == true)
-                return (EntityGraph)context.Transformations[child];
+                return (EntityRef) context.Transformations[child];
             
             var transform = Transforms()
                 .FirstOrDefault(t => t.ModelType == typeof(ChildModel))
                 .ThrowIfNull($"Transform not found for model: {typeof(ChildModel).FullName}");
 
-            var entityGraph = new EntityGraph
-            {
-                Entity = transform.NewEntity != null
-                    ? transform.NewEntity(child) ?? throw new Exception($"Entity creation failed for: {transform.EntityType.FullName}")
-                    : Activator.CreateInstance(transform.EntityType)
-            };
+            var entity = transform.NewEntity != null
+                ? transform.NewEntity(child) ?? throw new Exception($"Entity creation failed for: {transform.EntityType.FullName}")
+                : Activator.CreateInstance(transform.EntityType);
+            var @ref = new EntityRef { Entity = entity };
 
             if (context == null)
                 context = new TypeTransformContext { Transformer = this };
 
-            context.Transformations[child] = entityGraph;
+            context.Transformations[child] = @ref;
 
-            return transform.ToCollectionEntity.Invoke(
+            return transform.ToCollectionRef.Invoke(
                 parent, 
                 collectionProperty, 
                 child, 
-                entityGraph, 
+                @ref, 
                 command, 
                 context);
         }

@@ -7,8 +7,8 @@ namespace Axis.Jupiter
 {
     public static class Extensions
     {
-        public static TModel[] TransformQuery<TEntity, TModel>(
-            this IEnumerable<TEntity> entities,
+        public static TModel[] TransformAll<TModel>(
+            this IEnumerable<object> entities,
             TypeTransformer transformer)
         {
             var context = new TypeTransformContext {Transformer = transformer};
