@@ -1,12 +1,15 @@
-﻿using System;
+﻿using Axis.Jupiter.Helpers;
+using System;
 using System.Linq;
-using System.Linq.Expressions;
 
 namespace Axis.Jupiter.Contracts
 {
     public interface IStoreQuery
     {
-        IQueryable<Entity> Query<Entity>(params Expression<Func<Entity, object>>[] entityPropertyPaths)
-            where Entity : class;
+        //IQueryable<Entity> Query<Entity>(params IPropertyPath[] paths)
+        //where Entity : class;
+
+        IQueryable<Entity> Query<Entity>(params Func<IPropertyPath<Entity, Entity>, IPropertyPath>[] pathGenerators)
+        where Entity : class;
     }
 }

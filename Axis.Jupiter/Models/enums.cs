@@ -1,24 +1,10 @@
 ﻿
 namespace Axis.Jupiter.Models
 {
-    public enum EntityRefType
+    public enum CollectionRefCommand
     {
-        OneToOne,
-        OneToMany,
-        ManyToMany
-    }
-
-    public enum EntityRefRelativity
-    {
-        Source,
-        Destination
-    }
-
-    public enum TransformCommand
-    {
-        Add,
-        Update,
-        Remove,
-        Query
+        Add = 1,
+        Remove = 3,
+        Update = 2
     }
 }

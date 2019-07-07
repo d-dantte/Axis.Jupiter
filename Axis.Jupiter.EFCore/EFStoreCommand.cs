@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Axis.Jupiter.Contracts;
 using Axis.Jupiter.Models;
-using Axis.Jupiter.Services;
 using Axis.Luna.Operation;
 using Microsoft.EntityFrameworkCore;
 using Axis.Luna.Extensions;
+using System.Linq.Expressions;
+using System.Reflection;
+using Axis.Jupiter.Helpers;
+using Axis.Jupiter.Services;
 
 namespace Axis.Jupiter.EFCore
 {
@@ -17,174 +20,236 @@ namespace Axis.Jupiter.EFCore
 
     public class EFStoreCommand: IEFStoreCommand
     {
-        private readonly DbContext _context;
-        private readonly TypeTransformer _transformer;
+        private readonly EntityMapper _mapper;
 
-        public DbContext EFContext => _context;
+        public DbContext EFContext { get; }
 
 
-        public EFStoreCommand(TypeTransformer transformer, DbContext context)
+        public EFStoreCommand(EntityMapper mapper, DbContext context)
         {
-            _context = context ?? throw new Exception("Invalid Context specified: null");
-            _transformer = transformer ?? throw new Exception("Invalid Model Transformer specified: null");
+            EFContext = context ?? throw new Exception("Invalid Context specified: null");
+            _mapper = mapper ?? throw new Exception("Invalid Entity Mapper specified: null");
         }
 
+        #region Add
         public Operation<Model> Add<Model>(Model model) 
-        where Model : class => Operation.Try(async () =>
+        where Model : class 
+        => Operation.Try(async () =>
         {
-            var entity = _transformer.ToEntity(model, TransformCommand.Add);
-            entity = await _context.AddAsync(entity);
+            var entity = _mapper.ToEntity(model, MappingIntent.Add);
+            var entry = await EFContext.AddAsync(entity);
 
-            await _context.SaveChangesAsync();
+            await EFContext.SaveChangesAsync();
 
-            return _transformer.ToModel<Model>(entity, TransformCommand.Add);
+            return _mapper.ToModel<Model>(entry.Entity, MappingIntent.Add);
         });
 
         public Operation AddBatch<Model>(IEnumerable<Model> models)
-        where Model : class => Operation.Try(async () =>
+        where Model : class 
+        => Operation.Try(async () =>
         {
             var entities = models
-                .Select(model => _transformer.ToEntity(model, TransformCommand.Add))
+                .Select(model => _mapper.ToEntity(model, MappingIntent.Add))
                 .ThrowIf(ContainsNull, new Exception("Invalid Graph List: one of the object-transformation returned null"));
 
-            await _context.AddRangeAsync(entities);
+            await EFContext.AddRangeAsync(entities);
 
-            await _context.SaveChangesAsync();
+            await EFContext.SaveChangesAsync();
         });
+        #endregion
 
-
+        #region Update
         public Operation<Model> Update<Model>(Model model)
         where Model : class => Operation.Try(async () =>
         {
-            var entity = _transformer.ToEntity(model, TransformCommand.Update);
-            var entry = _context.Update(entity);
+            var entity = _mapper.ToEntity(model, MappingIntent.Update);
+            var entry = EFContext.Update(entity);
 
-            await _context.SaveChangesAsync();
+            await EFContext.SaveChangesAsync();
 
-            return _transformer.ToModel<Model>(entry.Entity, TransformCommand.Update);
+            return _mapper.ToModel<Model>(entry.Entity, MappingIntent.Update);
         });
 
         public Operation UpdateBatch<Model>(IEnumerable<Model> models)
         where Model : class => Operation.Try(async () =>
         {
-            var entities = models.Select(model => _transformer.ToEntity(model, TransformCommand.Update));
-            _context.UpdateRange(entities);
+            var entities = models.Select(model => _mapper.ToEntity(model, MappingIntent.Update));
+            EFContext.UpdateRange(entities);
 
-            await _context.SaveChangesAsync();
+            await EFContext.SaveChangesAsync();
         });
+        #endregion
 
-
+        #region Delete
         public Operation<Model> Delete<Model>(Model model)
-        where Model : class => Operation.Try(async () =>
+        where Model : class 
+        => Operation.Try(async () =>
         {
-            var entity = _transformer.ToEntity(model, TransformCommand.Update);
-            var entry = _context.Remove(entity);
+            var entity = _mapper.ToEntity(model, MappingIntent.Update);
+            var entry = EFContext.Remove(entity);
 
-            await _context.SaveChangesAsync();
+            await EFContext.SaveChangesAsync();
 
-            return _transformer.ToModel<Model>(entry.Entity, TransformCommand.Remove);
+            return _mapper.ToModel<Model>(entry.Entity, MappingIntent.Remove);
         });
 
         public Operation DeleteBatch<Model>(IEnumerable<Model> models)
-        where Model : class => Operation.Try(async () =>
+        where Model : class 
+        => Operation.Try(async () =>
         {
-            var entities = models.Select(model => _transformer.ToEntity(model, TransformCommand.Remove));
-            _context.RemoveRange(entities);
+            var entities = models.Select(model => _mapper.ToEntity(model, MappingIntent.Remove));
+            EFContext.RemoveRange(entities);
 
-            await _context.SaveChangesAsync();
+            await EFContext.SaveChangesAsync();
         });
 
+        #endregion
 
-        public Operation<Child[]> AddToCollection<Parent, Child>(
+        #region Collection 
+        public Operation AddToCollection<Parent, Child>(
             Parent parent,
-            string collectionProperty,
-            Child[] children)
+            Expression<Func<Parent, ICollection<Child>>> collectionPropertyExpression,
+            params Child[] children)
             where Parent : class
-            where Child : class => Operation.Try(async () =>
+            where Child : class
+        => Operation.Try(async () =>
         {
-            var refs = children
-                .Select(child => _transformer.ToCollectionRef(
-                    parent,
-                    collectionProperty,
-                    child,
-                    TransformCommand.Add))
-                .ToArray()
-                .ThrowIf(ContainsNull, new Exception("Invalid Entity Ref found"));
+            var infos = _mapper
+                .ToCollectionRefInfo(
+                    parent, 
+                    MappingIntent.Add, 
+                    collectionPropertyExpression, 
+                    children)
+                .ToArray();
 
-            if (refs.Length == 0)
-                throw new Exception("");
+            if (infos.Length == 0)
+                return;
 
+            await infos
+                .GroupBy(info => info.Rank)
+                .OrderByDescending(group => group.Key)
+                .Select(async group =>
+                {
+                    await group
+                        .GroupBy(info => info.Command)
+                        .OrderBy(group2 => group2.Key)
+                        .Select(async group2 =>
+                        {
+                            switch (group2.Key)
+                            {
+                                case CollectionRefCommand.Add:
+                                    var arr = group2
+                                        .Select(info => info.Entity)
+                                        .ToArray();
 
-            //add?
-            if (refs.All(IsManyToManyRef))
-                await refs
-                    .Select(@ref => @ref.Entity)
-                    .ToArray()
-                    .Pipe(_context.AddRangeAsync);
+                                    await EFContext.AddRangeAsync(arr);
+                                    await EFContext.SaveChangesAsync();
+                                    break;
 
-            //update?
-            else if (refs.All(IsOneToManyRef))
-                refs.Select(@ref => @ref.Entity)
-                    .ToArray()
-                    .Pipe(_context.UpdateRange);
+                                case CollectionRefCommand.Update:
+                                    arr = group2
+                                        .Select(info => info.Entity)
+                                        .ToArray();
 
-            //twilight zone
-            else throw new Exception("Invalid Entity Ref found");
+                                    EFContext.UpdateRange(arr);
+                                    await EFContext.SaveChangesAsync();
+                                    break;
 
-            await _context.SaveChangesAsync();
+                                default: throw new Exception("Invalid Command: " + group.Key);
+                            }
+                        })
+                        .Fold();
+                })
+                .Fold();
 
-            return refs
-                .Select(@ref => @ref.Entity)
-                .TransformAll<Child>(_transformer);
+            var property = collectionPropertyExpression.Body
+                .As<MemberExpression>().Member
+                .As<PropertyInfo>();
+            var modelCollection = parent.PropertyValue(property.Name) as ICollection<Child>;
+
+            //add the children to the collection
+            infos
+                .Where(info => info.Result != RefInfoResult.None)
+                .GroupBy(info => info.Result)
+                .ForAll(group =>
+                {
+                    switch (group.Key)
+                    {
+                        case RefInfoResult.Entity:
+                            modelCollection.AddRange(group.Select(info => _mapper.ToModel<Child>(
+                                info.Entity, 
+                                MappingIntent.Add)));
+                            break;
+
+                        case RefInfoResult.Model:
+                            modelCollection.AddRange(group.Select(info => info.Model as Child));
+                            break;
+                    }
+                });
         });
 
-        public Operation<Child[]> RemoveFromCollection<Parent, Child>(
+        public Operation RemoveFromCollection<Parent, Child>(
             Parent parent,
-            string collectionProperty,
-            Child[] children)
+            Expression<Func<Parent, ICollection<Child>>> collectionPropertyExpression,
+            params Child[] children)
             where Parent : class
-            where Child : class => Operation.Try(async () =>
-            {
-                var refs = children
-                    .Select(child => _transformer.ToCollectionRef(
-                        parent,
-                        collectionProperty,
-                        child,
-                        TransformCommand.Add))
-                    .ToArray()
-                    .ThrowIf(ContainsNull, new Exception("Invalid Entity Ref found"));
+            where Child : class
+        => Operation.Try(async () =>
+        {
+            var infos = _mapper.ToCollectionRefInfo(
+                parent,
+                MappingIntent.Add,
+                collectionPropertyExpression,
+                children);
 
-                if (refs.Length == 0)
-                    throw new Exception("");
+            await infos
+                .GroupBy(info => info.Rank)
+                .OrderByDescending(group => group.Key)
+                .Select(async group =>
+                {
+                    await group
+                        .GroupBy(info => info.Command)
+                        .OrderBy(group2 => group2.Key)
+                        .Select(async group2 =>
+                        {
+                            switch (group2.Key)
+                            {
+                                case CollectionRefCommand.Remove:
+                                    var arr = group
+                                        .Select(info => info.Entity)
+                                        .ToArray();
 
+                                    EFContext.RemoveRange(arr);
+                                    await EFContext.SaveChangesAsync();
+                                    break;
 
-                //remove?
-                if (refs.All(IsManyToManyRef))
-                    refs.Select(@ref => @ref.Entity)
-                        .ToArray()
-                        .Pipe(_context.RemoveRange);
+                                case CollectionRefCommand.Update:
+                                    arr = group
+                                        .Select(info => info.Entity)
+                                        .ToArray();
 
-                //update?
-                else if (refs.All(IsOneToManyRef))
-                    refs.Select(@ref => @ref.Entity)
-                        .ToArray()
-                        .Pipe(_context.UpdateRange);
+                                    EFContext.UpdateRange(arr);
+                                    await EFContext.SaveChangesAsync();
+                                    break;
 
-                //twilight zone
-                else throw new Exception("Invalid Entity Ref found");
+                                default: throw new Exception("Invalid Command: " + group.Key);
+                            }
+                        })
+                        .Fold();
+                })
+                .Fold();
 
-                await _context.SaveChangesAsync();
+            var property = collectionPropertyExpression.Body
+                .As<MemberExpression>().Member
+                .As<PropertyInfo>();
 
-                return refs
-                    .Select(@ref => @ref.Entity)
-                    .TransformAll<Child>(_transformer);
-            });
+            var modelCollection = parent.PropertyValue(property.Name) as ICollection<Child>;
+            modelCollection.RemoveAll(children);
+        });
+        #endregion
 
-
-        private static bool IsManyToManyRef(EntityRef @ref) => @ref?.RefType == EntityRefType.ManyToMany;
-
-        private static bool IsOneToManyRef(EntityRef @ref) => @ref?.RefType == EntityRefType.OneToMany;
-
-        private static bool ContainsNull<T>(IEnumerable<T> list)  => list?.Any(obj => obj == null) == true;
+        #region Misc
+        private static bool ContainsNull<T>(IEnumerable<T> list) => list?.Any(t => t == null) == true;
+        #endregion
     }
 }

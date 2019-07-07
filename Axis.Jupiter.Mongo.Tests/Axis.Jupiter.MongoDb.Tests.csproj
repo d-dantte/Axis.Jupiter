@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Axis.Jupiter.Mongo\Axis.Jupiter.Mongo.csproj" />
+    <ProjectReference Include="..\Axis.Jupiter.Mongo\Axis.Jupiter.MongoDb.csproj" />
     <ProjectReference Include="..\Axis.Jupiter\Axis.Jupiter.csproj" />
   </ItemGroup>
 

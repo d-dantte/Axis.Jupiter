@@ -2,27 +2,40 @@
 using Axis.Luna.Extensions;
 using System;
 
-namespace Axis.Jupiter.Models
+namespace Axis.Jupiter.Configuration
 {
-    public class TypeStoreEntry
+    public abstract class TypeStoreEntry
     {
         public string TypeName { get; }
         public Type QueryServiceType { get; }
         public Type CommandServiceType { get; }
-        public ITypeTransform TypeTransform { get; }
+        public ITypeMapper TypeMapper { get; }
 
         public TypeStoreEntry(
             string typeName,
             Type queryServiceType,
             Type commandServiceType,
-            ITypeTransform typeTransform)
+            ITypeMapper mapper)
         {
             TypeName = typeName;
             QueryServiceType = queryServiceType;
             CommandServiceType = commandServiceType;
-            TypeTransform = typeTransform;
+            TypeMapper = mapper;
 
             Validate();
+        }
+
+        public TypeStoreEntry(
+            string typeName,
+            Type commandServiceType,
+            ITypeMapper mapper)
+
+        :this(
+            typeName,
+            null,
+            commandServiceType,
+            mapper)
+        {
         }
 
         private void Validate()
@@ -33,10 +46,7 @@ namespace Axis.Jupiter.Models
 
             #region Store Query
 
-            if (QueryServiceType == null)
-                throw new Exception("Invalid Store Query Type");
-
-            if (!QueryServiceType.Implements(typeof(IStoreQuery)))
+            if (QueryServiceType?.Implements(typeof(IStoreQuery)) == false)
                 throw new Exception($"Invalid Store Query Type: does not implement/extend {typeof(IStoreQuery).FullName}");
 
             #endregion

@@ -3,10 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Axis.Jupiter.Models
+namespace Axis.Jupiter.Configuration
 {
-    using Ext = Axis.Luna.Extensions.Common;
-
     public class TypeStoreMap
     {
         private readonly Dictionary<string, TypeStoreEntry> _entries = new Dictionary<string, TypeStoreEntry>();

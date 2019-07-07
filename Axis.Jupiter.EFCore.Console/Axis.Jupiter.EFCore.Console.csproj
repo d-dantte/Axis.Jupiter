@@ -3,6 +3,28 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
+    <RootNamespace>Axis.Jupiter.EFCore.ConsoleTest</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Axis.Luna.Extensions" Version="4.3.0" />
+    <PackageReference Include="Axis.Luna.Operation" Version="4.3.0" />
+    <PackageReference Include="Axis.Proteus" Version="4.1.0" />
+    <PackageReference Include="Axis.Proteus.SimpleInjector" Version="4.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.2.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="2.2.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.2.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="2.2.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axis.Jupiter.EFCore\Axis.Jupiter.EFCore.csproj" />
+    <ProjectReference Include="..\Axis.Jupiter\Axis.Jupiter.csproj" />
+  </ItemGroup>
 
 </Project>
