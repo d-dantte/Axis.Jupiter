@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace Axis.Jupiter.MongoDb.Models
 {
+    /// <summary>
+    /// Represents a Referen
+    /// </summary>
     public interface IEntityCollectionRef
     {
         /// <summary>

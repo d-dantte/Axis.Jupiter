@@ -31,6 +31,8 @@ namespace Axis.Jupiter.MongoDb
 
         IBsonSerializer Serializer { get; }
         #endregion
+
+        //expose equals and GetHashCode because instances of this are used as keys.
     }
 
     public abstract class EntityInfo<TEntity, TKey>: IEntityInfo
