@@ -7,6 +7,8 @@ using Axis.Jupiter.MongoDb.Models;
 using MongoDB.Driver;
 using Axis.Jupiter.Contracts;
 using Axis.Jupiter.Helpers;
+using Axis.Jupiter.MongoDb.XModels;
+using Axis.Jupiter.Configuration;
 
 namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
 {
@@ -18,13 +20,7 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
 
         public string Name { get; set; }
 
-        public SecondaryRef<Guid, Guid, Role>[] RoleRefs { get; set; } = new SecondaryRef<Guid, Guid, Role>[0];
-
-        ///<inheritdoc/>
-        public override IEnumerable<IEntityCollectionRef> EntityCollectionRefs() => new IEntityCollectionRef[0];
-
-        /// <inheritdoc/>
-        public override IEnumerable<IEntityRef> EntityRefs() => RoleRefs?.ToArray() ?? new IEntityRef[0];
+        public EntitySetRef<Entities.Role, Guid, Guid> Roles { get; set; }
 
 
         public User()
@@ -32,75 +28,22 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
         }
     }
 
-    public class UserEntityInfo : EntityInfo<User, Guid>
-    {
-        public override string Database => "Elara-Test";
 
-        public override MongoDatabaseSettings DatabaseSettings => new MongoDatabaseSettings
-        {
-            GuidRepresentation = MongoDB.Bson.GuidRepresentation.CSharpLegacy
-        };
-
-        public override AggregateOptions QueryOptions => new AggregateOptions
-        {
-        };
-
-        public override DeleteOptions DeleteOptions => new DeleteOptions
-        {
-        };
-
-        public override InsertOneOptions InsertSingleOptions => new InsertOneOptions
-        {
-        };
-
-        public override InsertManyOptions InsertMultipleOptions => new InsertManyOptions
-        {
-        };
-
-        public override UpdateOptions UpdateOptions => new UpdateOptions
-        {
-        };
-    }
-
-    public class UserEntityMapper : ITypeMapper
+    public class UserConfig : EntityInfo<Entities.User, Guid>, ITypeMapper
     {
         public Type ModelType => typeof(Models.User);
 
-        public Type EntityType => typeof(Entities.User);
+        public static TypeStoreEntry StoreEntry() => new TypeStoreEntry(
+            typeName: typeof(Models.User).FullName,
+            mapper: Singleton,
+            commandServiceType: typeof(XMongoStoreCommand));
+
+        public static UserConfig Singleton { get; } = new UserConfig();
+
 
         public object NewEntity(object model) => new Entities.User();
 
         public object NewModel(object entity) => new Models.User();
-
-        public object ToEntity(object model, object entity, MappingIntent intent, MappingContext context)
-        {
-            var userModel = (Models.User)model;
-            var userEntity = userModel.CopyBase((Entities.User)entity);
-
-            userEntity.Bio = userModel.Bio == null ? null : new Entities.BioData
-            {
-                DateOfBirth = userModel.Bio.DateOfBirth,
-                FirstName = userModel.Bio.FirstName,
-                LastName = userModel.Bio.LastName,
-                MiddleName = userModel.Bio.MiddleName,
-                Nationality = userModel.Bio.Nationality,
-                Owner = userEntity,
-                Sex = userModel.Bio.Sex
-            };
-
-            userEntity.Name = userModel.Name;
-
-            userEntity.RoleRefs = userModel.Roles
-                .Select(role => context.EntityMapper
-                .ToEntity<Models.Role>(role, intent, context))
-                .Cast<Entities.Role>()
-                .Select(role => new SecondaryRef<Guid, Guid, Role>(userEntity, role))
-                .ToArray();
-
-            userEntity.Status = userModel.Status;
-
-            return userEntity;
-        }
 
         public object ToModel(object entity, object model, MappingIntent intent, MappingContext context)
         {
@@ -108,13 +51,6 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
             var userModel = userEntity.CopyBase((Models.User)model);
 
             userModel.Name = userEntity.Name;
-
-            userEntity.RoleRefs
-                .Where(@ref => @ref.Entity != null)
-                .Select(@ref => context.EntityMapper
-                .ToModel<Models.Role>(@ref.Entity, intent, context))
-                .Pipe(userModel.Roles.AddRange);
-
             userModel.Status = userEntity.Status;
 
             userModel.Bio = userEntity.Bio == null ? null : new Models.BioData
@@ -128,59 +64,104 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
                 Owner = userModel
             };
 
+            userEntity.Roles?.Refs
+                .Where(@ref => @ref.RefInstance != null)
+                .Select(@ref => context.EntityMapper
+                .ToModel<Models.Role>(@ref.RefInstance, intent, context))
+                .Pipe(userModel.Roles.AddRange);
+
             return userModel;
         }
 
+        public object ToEntity(object model, object entity, MappingIntent intent, MappingContext context)
+        {
+            var userModel = (Models.User)model;
+            var userEntity = userModel.CopyBase((Entities.User)entity);
+
+            userEntity.Name = userModel.Name;
+            userEntity.Status = userModel.Status;
+            userEntity.Bio = new BioData
+            {
+                DateOfBirth = userModel.Bio.DateOfBirth,
+                FirstName = userModel.Bio.FirstName,
+                LastName = userModel.Bio.LastName,
+                MiddleName = userModel.Bio.MiddleName,
+                Nationality = userModel.Bio.Nationality,
+                Sex = userModel.Bio.Sex
+            };
+            
+
+            userEntity.Roles = Provider.CreateSetRef<Entities.Role, Guid, Guid>(
+                userEntity.Key,
+                nameof(Entities.User.Roles),
+                userModel.Roles
+                    .Where(r => !r.IsPersisted) //leave only non-persisted roles there so they can get persisted too
+                    .Select(r => context.EntityMapper.ToEntity(r, intent, context))
+                    .Cast<Entities.Role>()
+                    .ToArray());
+
+            return userEntity;
+        }
+
         public IEnumerable<CollectionRefInfo> ToCollectionRefInfos<TModel>(
-            object parentModel,
+            object parent,
             MappingIntent intent,
-            string propertyName,
+            string property,
             TModel[] children,
             MappingContext context)
             where TModel : class
         {
-            if (propertyName != nameof(Models.User.Roles))
-                throw new ArgumentException($"Invalid Property: {propertyName ?? "null"}");
-
-            var user = parentModel as Models.User;
-
-            switch (intent)
+            var userModel = parent.As<Models.User>();
+            switch (property)
             {
-                case MappingIntent.Add:
-                case MappingIntent.Remove:
-                    return children
-                        .Cast<Models.Role>()
-                        .Select(role =>
-                        {
-                            var roleEntity = context.EntityMapper.ToEntity(
-                                role,
-                                MappingIntent.Add,
-                                context)
-                                .As<Role>();
+                case nameof(Models.User.Roles):
+                    return children.Cast<Models.Role>()
+                        .Select(child => new CollectionRefInfo(
+                            model: child,
+                            result: RefInfoResult.Model,
+                            command: intent == MappingIntent.Add ? CollectionRefCommand.Add : CollectionRefCommand.Remove,
+                            entity: Provider
+                                .CreateSetRefEntity<Entities.Role, Guid, Guid>(
+                                    userModel.Id,
+                                    child.Id,
+                                    nameof(Entities.User.Roles))))
+                        .ToArray();
 
-                            var refinfos = new List<CollectionRefInfo>();
-
-                            if (!role.IsPersisted)
-                                refinfos.Add(new CollectionRefInfo(
-                                    command: CollectionRefCommand.Add,
-                                    model: role,
-                                    entity: roleEntity,
-                                    rank: 1));
-
-                            return new CollectionRefInfo(
-                                result: RefInfoResult.Model,
-                                rank: 0,
-                                command: intent == MappingIntent.Remove ? CollectionRefCommand.Remove : CollectionRefCommand.Add,
-                                model: role,
-                                entity: new UserRole
-                                {
-                                    UserId = user.Id,
-                                    Role = roleEntity
-                                });
-                        });
-
-                default: throw new Exception("Invalid Mapping Intent");
+                default:
+                    throw new ArgumentException($"Invalid Property: {property}");
             }
+        }
+
+        private bool IsNotNull(object obj) => obj != null;
+
+        private UserConfig()
+        {
+            Database = "Elara-Test";
+
+            QueryOptions = new AggregateOptions
+            {
+
+            };
+
+            DeleteOptions = new DeleteOptions
+            {
+
+            };
+
+            InsertSingleOptions = new InsertOneOptions
+            {
+
+            };
+
+            InsertMultipleOptions = new InsertManyOptions
+            {
+
+            };
+
+            UpdateOptions = new UpdateOptions
+            {
+
+            };
         }
     }
 

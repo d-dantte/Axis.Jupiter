@@ -71,6 +71,7 @@ namespace Axis.Jupiter.MongoDb
 
             var entityGroups = XMongoStoreCommand
                 .ExtractExternalReferences(entity, _infoProvider)
+                .Where(e => !e.IsPersisted)
                 .GroupBy(EntityInfo);
 
             //now add each group to their respective collections
@@ -133,8 +134,11 @@ namespace Axis.Jupiter.MongoDb
                 return;
 
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
+
+            if (!info.IsCollectionInitialized)
+                await info.InitializeCollection(_client);
 
             await _client
                 .GetDatabase(info.Database, info.DatabaseSettings)
@@ -145,8 +149,11 @@ namespace Axis.Jupiter.MongoDb
         private async Task AddRangeToCollection<Entity>(object[] entities)
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
+
+            if (!info.IsCollectionInitialized)
+                await info.InitializeCollection(_client);
 
             await _client
                 .GetDatabase(info.Database, info.DatabaseSettings)
@@ -169,6 +176,7 @@ namespace Axis.Jupiter.MongoDb
                         
             var entityGroups = XMongoStoreCommand
                 .ExtractExternalReferences(entity, _infoProvider)
+                .Where(e => e.IsPersisted)
                 .GroupBy(EntityInfo);
 
             //now update each group in their respective collections
@@ -233,8 +241,11 @@ namespace Axis.Jupiter.MongoDb
         where Entity: IMongoEntity<TKey>
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
+
+            if (!info.IsCollectionInitialized)
+                await info.InitializeCollection(_client);
 
             var mongoEntity = (Entity)entity;
             var filter = Builders<Entity>.Filter.Eq(e => e.Key, mongoEntity.Key);
@@ -252,8 +263,11 @@ namespace Axis.Jupiter.MongoDb
         where Entity: IMongoEntity<TKey>
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
+
+            if (!info.IsCollectionInitialized)
+                await info.InitializeCollection(_client);
 
             var replaceModels = entities
                 .Cast<Entity>()
@@ -292,7 +306,7 @@ namespace Axis.Jupiter.MongoDb
                 .ThrowIfNull($"No Transform Map found for model type: {typeof(Model).FullName}");
 
             var info = _infoProvider
-                .InfoFor(entityEntry.TypeMapper.EntityType)
+                .InfoForEntity(entityEntry.TypeMapper.EntityType)
                 .ThrowIfNull($"No Entity Info found for: {entityEntry.TypeMapper.EntityType.FullName}");
 
             //use fast-call to call the AddToCollection<Entity> method on the database object
@@ -346,8 +360,11 @@ namespace Axis.Jupiter.MongoDb
         where Entity: IMongoEntity<TKey>
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
+
+            if (!info.IsCollectionInitialized)
+                await info.InitializeCollection(_client);
 
             var filter = Builders<Entity>.Filter.Eq(e => e.Key, entity.Key);
 
@@ -361,8 +378,11 @@ namespace Axis.Jupiter.MongoDb
         where Entity: IMongoEntity<TKey>
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
+
+            if (!info.IsCollectionInitialized)
+                await info.InitializeCollection(_client);
 
             var filter = entities
                 .Select(entity => Builders<Entity>.Filter.Eq(e => e.Key, entity.Key))
@@ -517,7 +537,7 @@ namespace Axis.Jupiter.MongoDb
         #region Helpers
 
         private IEntityInfo EntityInfo(IMongoEntity entity)
-        => entity == null? null : _infoProvider.InfoFor(entity.GetType());
+        => entity == null? null : _infoProvider.InfoForEntity(entity.GetType());
 
         private static bool IsNotNull<T>(T t) => t != null;
 
@@ -543,41 +563,28 @@ namespace Axis.Jupiter.MongoDb
                 //refs
                 entity
                     .EntityRefs()
-                    .Where(@ref => @ref.Entity != null)
-                    .Select(@ref => InitializeRef(@ref, provider))
-                    .Select(@ref => @ref.Entity)
-                    .ForAll(e => ExtractExternalReferences(e, context, provider));
+                    .Cast<IRefInstance>()
+                    .ForAll(@ref => ExtractExternalReferences(@ref.RefInstance, context, provider));
 
                 //collection refs
                 entity
-                    .EntityCollectionRefs()
-                    .Select(@ref => InitializeRef(@ref, provider))
-                    .SelectMany(@ref => @ref.EntityCollection
+                    .EntitySetRefs()
+                    .Cast<IRefEnumerable>()
+                    .SelectMany(@ref => @ref.Refs
                     .Where(IsNotNull))
                     .ForAll(e => ExtractExternalReferences(e, context, provider));
 
+                //set ref RefInstance
+                if (entity is ISetRef setRef)
+                {
+                    setRef
+                        .SetRefTarget()
+                        .Pipe(@ref => ExtractExternalReferences(@ref?.RefInstance, context, provider));
+                }
+
+
                 return context;
             }
-        }
-    
-        private static IEntityRef InitializeRef(IEntityRef @ref, EntityInfoProvider provider)
-        {
-            var info = provider.InfoFor(@ref.EntityType);
-            var mongoRef = @ref as IMongoDbEntityRef;
-            mongoRef.DbLabel = info.Database;
-            mongoRef.DbCollection = info.CollectionName;
-
-            return @ref;
-        }
-
-        private static IEntityCollectionRef InitializeRef(IEntityCollectionRef @ref, EntityInfoProvider provider)
-        {
-            var info = provider.InfoFor(@ref.EntityType);
-            var mongoRef = @ref as IMongoDbEntityRef;
-            mongoRef.DbLabel = info.Database;
-            mongoRef.DbCollection = info.CollectionName;
-
-            return @ref;
         }
 
         private static string GenericSignature(
@@ -663,16 +670,91 @@ namespace Axis.Jupiter.MongoDb
 
             return new UpdateOneModel<Entity>(filterDef, definition);
         }
-
-
+        
         #endregion
     }
 
     public static class Xtensions
     {
+        private static readonly ConcurrentDictionary<Type, List<MethodInfo>> _EntityRefAccessors = new ConcurrentDictionary<Type, List<MethodInfo>>();
+        private static readonly ConcurrentDictionary<Type, List<MethodInfo>> _EntitySetRefAccessors = new ConcurrentDictionary<Type, List<MethodInfo>>();
+        private static readonly ConcurrentDictionary<Type, MethodInfo> _TargetRefAccessors = new ConcurrentDictionary<Type, MethodInfo>();
+
         public static IEnumerable<object> EntityRefs(this IMongoEntity entity)
         {
+            var refAccessors = _EntityRefAccessors.GetOrAdd(entity.GetType(), _t =>
+            {
+                return _t
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(IsEntityRefProperty)
+                    .Where(IsNotIgnored)
+                    .Select(property => property.GetMethod)
+                    .ToList();
+            });
 
+            return refAccessors
+                .Select(method => entity.CallFunc(method))
+                .Where(IsNotNullRef)
+                .ToArray();
         }
+
+        public static IEnumerable<object> EntitySetRefs(this IMongoEntity entity)
+        {
+            var setRefAccessors = _EntitySetRefAccessors.GetOrAdd(entity.GetType(), _t =>
+            {
+                return _t
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(IsEntitySetRefProperty)
+                    .Where(IsNotIgnored)
+                    .Select(property => property.GetMethod)
+                    .ToList();
+            });
+
+            return setRefAccessors
+                .Select(method => entity.CallFunc(method))
+                .Where(IsNotNullSetRef)
+                .ToArray();
+        }
+
+        public static IEntityRef SetRefTarget(this ISetRef setRef)
+        {
+            var setRefAccessor = _TargetRefAccessors.GetOrAdd(setRef.GetType(), _t =>
+            {
+                return _t
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(prop => prop.Name == nameof(ISetRef.TargetRef))
+                    .Select(property => property.GetMethod)
+                    .FirstOrDefault();
+            });
+
+            return setRef.CallFunc<IEntityRef>(setRefAccessor);
+        }
+
+        private static bool IsEntityRefProperty(PropertyInfo property)
+        {
+            return property.PropertyType.TryGetGenericTypeDefinition(out var genTypeDef)
+                && genTypeDef == typeof(EntityRef<,>)
+                && property.GetMethod.IsPublic;
+        }
+
+        private static bool IsNotIgnored(PropertyInfo property)
+        => !property.HasAttribute(typeof(BsonIgnoreAttribute))
+            && !property.HasAttribute(typeof(Newtonsoft.Json.JsonIgnoreAttribute));
+
+        private static bool IsEntitySetRefProperty(PropertyInfo property)
+        {
+            return property.PropertyType.TryGetGenericTypeDefinition(out var genTypeDef)
+                && genTypeDef == typeof(EntitySetRef<,,>)
+                && property.GetMethod.IsPublic;
+        }
+
+        private static bool IsNotNullRef(object obj)
+        {
+            return obj != null
+                && obj is IRefInstance refPointer
+                && refPointer.RefInstance != null;
+        }
+
+        private static bool IsNotNullSetRef(object obj) => obj != null;
     }
 }

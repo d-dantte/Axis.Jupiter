@@ -1,10 +1,12 @@
 ﻿using Axis.Jupiter.Configuration;
 using Axis.Luna.Extensions;
 using System;
-using System.Collections.Generic;
-using Axis.Jupiter.MongoDb.Models;
-using MongoDB.Bson.Serialization.Attributes;
+using Axis.Jupiter.MongoDb.XModels;
 using MongoDB.Driver;
+using Axis.Jupiter.Contracts;
+using Axis.Jupiter.Helpers;
+using Axis.Jupiter.Models;
+using System.Collections.Generic;
 
 namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
 {
@@ -15,87 +17,77 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
 
         public string Scope { get; set; }
 
-        [BsonIgnore]
-        public virtual Role Role => RoleRef.Entity;
-
-        public SecondaryRef<Guid, Guid, Role> RoleRef { get; }
-
-        public Guid RoleId { get; set; }
-
-        public override IEnumerable<IEntityCollectionRef> EntityCollectionRefs()
-        => new IEntityCollectionRef[0];
-
-        public override IEnumerable<IEntityRef> EntityRefs()
-        => new IEntityRef[] { RoleRef };
+        public EntityRef<Role, Guid> Role { get; set; }
 
         public Permission()
         {
-            RoleRef = new SecondaryRef<Guid, Guid, Role>(this);
-        }
-
-        public Permission(SecondaryRef<Guid, Guid, Role> roleRef)
-        {
-            RoleRef = roleRef ?? throw new ArgumentException(nameof(roleRef));
-            RoleRef.Referrer = this;
         }
     }
 
-    public class PermissionStoreEntry : TypeStoreEntry
+    public class PermissionConfig: EntityInfo<Permission, Guid>, ITypeMapper
     {
-        public PermissionStoreEntry() : base(
-            typeof(Models.Permission).FullName,
-            typeof(MongoStoreCommand),
-            NewTransformInstance())
+        public static TypeStoreEntry StoreEntry() => new TypeStoreEntry(
+            typeName: typeof(Models.Permission).FullName,
+            mapper: Singleton,
+            commandServiceType: typeof(XMongoStoreCommand));
+
+        public static PermissionConfig Singleton { get; } = new PermissionConfig();
+
+
+        #region ITypeMapper
+        public Type ModelType => typeof(Models.Permission);
+
+        public object NewEntity(object model) => new Entities.Permission();
+
+        public object NewModel(object entity) => new Models.Permission();
+
+        public IEnumerable<CollectionRefInfo> ToCollectionRefInfos<TModel>(
+            object parentModel,
+            MappingIntent intent,
+            string propertyName,
+            TModel[] children,
+            MappingContext context)
+        where TModel : class => null;
+
+        public object ToEntity(object model, object entity, MappingIntent intent, MappingContext context)
         {
+            var permModel = (Models.Permission)model;
+            var permEntity = permModel.CopyBase((Entities.Permission)entity);
+
+            var role = context.EntityMapper
+                .ToEntity<Models.Role>(
+                    permModel.Role,
+                    intent,
+                    context)
+                .As<Entities.Role>();
+
+            if(role != null)
+                permEntity.Role = Provider.CreateRef<Entities.Role, Guid>(role);
+
+            permEntity.Name = permModel.Name;
+            permEntity.Scope = permModel.Scope;
+
+            return permModel;
         }
 
-        private static DefaultTypeTransform<Entities.Permission, Models.Permission> NewTransformInstance()
-        => new DefaultTypeTransform<Entities.Permission, Models.Permission>
+        public object ToModel(object entity, object model, MappingIntent intent, MappingContext context)
         {
-            NewEntity = (model) => new Permission(),
-            NewModel = (entity) => new Models.Permission(),
+            var permEntity = (Entities.Permission)entity;
+            var permModel = permEntity.CopyBase((Models.Permission)model);
 
-            ToModel = (entity, model, command, context) =>
-            {
-                var permEntity = (Entities.Permission)entity;
-                var permModel = permEntity.CopyBase((Models.Permission)model);
+            permModel.Role = context.EntityMapper.ToModel<Models.Role>(
+                permEntity.Role?.RefInstance,
+                intent,
+                context);
 
-                permModel.Role = context.Transformer.ToModel<Models.Role>(
-                        permEntity.Role,
-                        command,
-                        context);
+            permModel.Name = permEntity.Name;
+            permModel.Scope = permEntity.Scope;
 
-                permModel.Name = permEntity.Name;
-                permModel.Scope = permEntity.Scope;
+            return permModel;
+        }
+        #endregion
 
-                return permModel;
-            },
-
-            ToEntity = (model, entity, command, context) =>
-            {
-                var permModel = (Models.Permission)model;
-                var permEntity = permModel.CopyBase((Entities.Permission)entity);
-
-                permEntity.RoleRef.Entity = context.Transformer
-                        .ToEntity<Models.Role>(
-                            permModel.Role,
-                            command,
-                            context)
-                        .As<Entities.Role>();
-
-                permEntity.RoleId = permEntity.Role?.Key ?? Guid.Empty;
-                permEntity.Name = permModel.Name;
-                permEntity.Scope = permModel.Scope;
-
-                return permModel;
-            },
-
-            ToEntityCollectionRef = null
-        };
-    }
-
-    public class PermissionEntityInfo : EntityInfo<Permission, Guid>
-    {
+        #region EntityInfo
         public override string Database => "Elara-Test";
 
         public override MongoDatabaseSettings DatabaseSettings => new MongoDatabaseSettings
@@ -103,29 +95,36 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
             GuidRepresentation = MongoDB.Bson.GuidRepresentation.CSharpLegacy
         };
 
-        public override AggregateOptions QueryOptions => new AggregateOptions
+        #endregion
+
+        private PermissionConfig()
         {
+            Database = "Elara-Test";
 
-        };
+            QueryOptions = new AggregateOptions
+            {
 
-        public override DeleteOptions DeleteOptions => new DeleteOptions
-        {
+            };
 
-        };
+            DeleteOptions = new DeleteOptions
+            {
 
-        public override InsertOneOptions InsertSingleOptions => new InsertOneOptions
-        {
+            };
 
-        };
+            InsertSingleOptions = new InsertOneOptions
+            {
 
-        public override InsertManyOptions InsertMultipleOptions => new InsertManyOptions
-        {
+            };
 
-        };
+            InsertMultipleOptions = new InsertManyOptions
+            {
 
-        public override UpdateOptions UpdateOptions => new UpdateOptions
-        {
+            };
 
-        };
+            UpdateOptions = new UpdateOptions
+            {
+
+            };
+        }
     }
 }

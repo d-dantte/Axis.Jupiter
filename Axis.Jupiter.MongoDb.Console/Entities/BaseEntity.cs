@@ -1,6 +1,8 @@
-﻿using Axis.Jupiter.MongoDb.Models;
+﻿using Axis.Jupiter.MongoDb.Attributes;
+using Axis.Jupiter.MongoDb.XModels;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -8,22 +10,24 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
 {
     public abstract class BaseEntity<TKey>: IMongoEntity<TKey>
     {
+        public ObjectId _id { get; set; }
+
+        [MongoIndex]
         public TKey Key { get; set; }
 
-        [BsonIgnore]
+        [JsonIgnore, BsonIgnore]
         TKey IMongoEntity<TKey>.Key { get => Key; set => Key = value; }
 
-        public ObjectId _id { get; set; } = ObjectId.GenerateNewId();
+        [JsonIgnore, BsonIgnore]
+        object IMongoEntity.Key { get => Key; set => Key = (TKey)value; }
+
+
+        [JsonIgnore, BsonIgnore]
+        public bool IsPersisted { get; set; }
 
         public DateTimeOffset CreatedOn { get; set; }
 
         public Guid CreatedBy { get; set; }
-
-        /// <inheritdoc/>
-        public abstract IEnumerable<IEntityCollectionRef> EntityCollectionRefs();
-        
-        /// <inheritdoc/>
-        public abstract IEnumerable<IEntityRef> EntityRefs();
 
         public override bool Equals(object obj)
         {

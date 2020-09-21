@@ -8,6 +8,7 @@ namespace Axis.Jupiter.Contracts
     public interface ITypeMapper
     {
         Type ModelType { get; }
+
         Type EntityType { get; }
 
         /// <summary>

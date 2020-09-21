@@ -1,11 +1,12 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
 using System;
 
 namespace Axis.Jupiter.MongoDb.ConsoleTest.Entities
 {
     public class BioData
     {
-        [BsonIgnore]
+        [JsonIgnore, BsonIgnore]
         public User Owner { get; set; }
 
         public string FirstName { get; set; }

@@ -3,13 +3,12 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Conventions;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace Axis.Jupiter.MongoDb.Conventions
 {
+    [Obsolete]
     public class ImmutableObjectConvention : ConventionBase, IClassMapConvention
     {
         private readonly BindingFlags _bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;

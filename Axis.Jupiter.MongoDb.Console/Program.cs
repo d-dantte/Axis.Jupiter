@@ -1,6 +1,10 @@
 ﻿using Axis.Jupiter.Configuration;
+using Axis.Jupiter.Contracts;
 using Axis.Jupiter.Helpers;
+using Axis.Jupiter.MongoDb.ConsoleTest.Entities;
+using Axis.Jupiter.MongoDb.Providers;
 using Axis.Jupiter.Providers;
+using Axis.Jupiter.Services;
 using Axis.Luna.Extensions;
 using Axis.Proteus.Ioc;
 using Axis.Proteus.SimpleInjector;
@@ -42,6 +46,24 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest
             var infoProvider = resolver.Resolve<EntityInfoProvider>();
             var transformer = resolver.Resolve<EntityMapper>();
 
+            IQueryable<Entities.User> userq = null;
+            IQueryable<Entities.Role> roleq = null;
+            IQueryable<XModels.SetRefEntity<Entities.Role, Guid, Guid>> refq = null;
+            IQueryable<Entities.BioData> bios = null;
+
+            var retrievedUsers = from user in userq
+            join bio in bios on user.Key equals bio.Owner.Key
+            join @ref in refq on user.Key equals @ref.SourceKey into userRoleRefs
+            from t in userRoleRefs
+            join role in roleq on t.RefKey equals role.Key into roles
+            select new
+            {
+                user,
+                bio,
+                userRoleRefs,
+                roles
+            };
+
 
             var tyrant = new Models.Role
             {
@@ -51,7 +73,7 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest
 
             #region User
             var userCommand = provider.CommandFor<Models.User>();
-            var userInfo = infoProvider.InfoFor<Entities.User>();
+            var userInfo = infoProvider.InfoForEntity<Entities.User>();
 
             var polyMaster = client
                 .GetDatabase(userInfo.Database)
@@ -98,7 +120,7 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest
 
             #region Role
             var roleCommand = provider.CommandFor<Models.Role>();
-            var roleInfo = infoProvider.InfoFor<Entities.Role>();
+            var roleInfo = infoProvider.InfoForEntity<Entities.Role>();
 
             var tyrantRole = client
                 .GetDatabase(roleInfo.Database)
@@ -112,22 +134,19 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest
 
         static void RegisterServices(IServiceRegistrar registrar, IServiceResolver resolver)
         {
-            var storeMap = Assembly
+            var configs = Assembly
                 .GetAssembly(typeof(Entities.User))
                 .GetExportedTypes()
-                .Where(t => t.Extends(typeof(TypeStoreEntry)))
-                .Select(Activator.CreateInstance)
-                .Cast<TypeStoreEntry>()
-                .ToArray()
-                .Pipe(entries => new TypeStoreMap(entries));
+                .Where(t => t.Implements(typeof(ITypeMapper)))
+                .Select(t => new
+                {
+                    EntityInfo = EntityInfo(t),
+                    TypeStoreEntry = StoreEntry(t)
+                })
+                .ToArray();
 
-            var infoProvider = Assembly
-                .GetAssembly(typeof(Entities.User))
-                .GetExportedTypes()
-                .Where(t => t.Implements(typeof(IEntityInfo)))
-                .Select(Activator.CreateInstance)
-                .Cast<IEntityInfo>()
-                .Pipe(infoList => new EntityInfoProvider(infoList));
+            var infoProvider = new EntityInfoProvider(configs.Select(c => c.EntityInfo).ToArray());
+            var storeMap = new TypeStoreMap(configs.Select(c => c.TypeStoreEntry).ToArray());
 
             registrar.Register(() => resolver, RegistryScope.Singleton);
             registrar.Register(() => storeMap, RegistryScope.Singleton);
@@ -142,6 +161,22 @@ namespace Axis.Jupiter.MongoDb.ConsoleTest
                 });
             }, RegistryScope.Singleton);
             registrar.Register<MongoStoreCommand>(RegistryScope.Singleton);
+        }
+
+        static EntityInfo EntityInfo(Type configType)
+        {
+            return configType
+                .GetProperties(BindingFlags.Static | BindingFlags.Public)
+                .FirstOrDefault(m => m.Name == nameof(UserConfig.Singleton))
+                .GetMethod.CallStaticFunc<EntityInfo>();
+        }
+
+        static TypeStoreEntry StoreEntry(Type configType)
+        {
+            return configType
+                .GetMethods(BindingFlags.Static | BindingFlags.Public)
+                .FirstOrDefault(m => m.Name == nameof(UserConfig.StoreEntry))
+                .CallStaticFunc<TypeStoreEntry>();
         }
     }
 }

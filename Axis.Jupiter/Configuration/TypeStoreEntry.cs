@@ -4,7 +4,7 @@ using System;
 
 namespace Axis.Jupiter.Configuration
 {
-    public abstract class TypeStoreEntry
+    public class TypeStoreEntry
     {
         public string TypeName { get; }
         public Type QueryServiceType { get; }

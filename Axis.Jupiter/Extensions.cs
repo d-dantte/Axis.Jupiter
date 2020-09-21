@@ -1,4 +1,5 @@
 ﻿using Axis.Jupiter.Helpers;
+using Axis.Jupiter.Models;
 using Axis.Jupiter.Services;
 using System;
 using System.Collections.Generic;
@@ -54,5 +55,6 @@ namespace Axis.Jupiter
         }
 
         public static Task Fold(this IEnumerable<Task> tasks) => Task.WhenAll(tasks);
+
     }
 }

@@ -1,12 +1,18 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
+using System;
 
 namespace Axis.Jupiter.MongoDb.XModels
 {
     /// <summary>
     /// 
     /// </summary>
-    public abstract class EntityRef : IEntityRef, IRefMetadata, IRefPointer
+    /// <typeparam name="TRefInstance"></typeparam>
+    /// <typeparam name="TRefKey"></typeparam>
+    public class EntityRef<TRefInstance, TRefKey> : IEntityRef<TRefKey>, IRefInstance<TRefInstance, TRefKey>, IRefMetadata
+    where TRefInstance: IMongoEntity<TRefKey>
     {
+        #region IEntityRef<>
         /// <inheritdoc/>
         public string DbCollection { get; }
 
@@ -14,66 +20,68 @@ namespace Axis.Jupiter.MongoDb.XModels
         public string DbLabel { get; }
 
         /// <inheritdoc/>
-        public Type KeyType => Key.GetType();
+        public TRefKey RefKey { get; }
 
         /// <inheritdoc/>
-        public object Key { get; }
+        [JsonIgnore, BsonIgnore]
+        object IRefIdentity.RefKey => RefKey;
+        #endregion
+
+
+        #region IRefInstance
+        /// <inheritdoc/>
+        [JsonIgnore, BsonIgnore]
+        IMongoEntity IRefInstance.RefInstance => RefInstance;
 
         /// <inheritdoc/>
-        public Type EntityType => Entity?.GetType();
+        [JsonIgnore, BsonIgnore]
+        IMongoEntity<TRefKey> IRefInstance<TRefKey>.RefInstance => RefInstance;
 
         /// <inheritdoc/>
-        public IMongoEntity Entity { get; }
+        [JsonIgnore, BsonIgnore]
+        public TRefInstance RefInstance { get; }
+        #endregion
 
 
-        protected EntityRef(
-            object key,
-            string collection,
+        #region IRefMetadata
+        /// <inheritdoc/>
+        [JsonIgnore, BsonIgnore]
+        public Type KeyType => typeof(TRefKey);
+
+        /// <inheritdoc/>
+        [JsonIgnore, BsonIgnore]
+        public Type EntityType => RefInstance?.GetType();
+        #endregion
+
+
+        public EntityRef<TRefInstance, TRefKey> CloneWith(TRefInstance entity)
+        => new EntityRef<TRefInstance, TRefKey>(entity, DbCollection, DbLabel);
+
+
+        public EntityRef(
+            TRefKey key,
+            string collection = null,
             string dblabel = null)
         {
-            Key = key ?? throw new ArgumentNullException(nameof(key));
-            DbCollection = collection ?? throw new ArgumentNullException(nameof(collection));
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
+            else RefKey = key;
+
+            DbCollection = collection;
             DbLabel = dblabel;
         }
 
-        protected EntityRef(
-            IMongoEntity entity,
-            string collection,
+        public EntityRef(
+            TRefInstance entity,
+            string collection = null,
             string dblabel = null)
             : this(entity.Key, collection, dblabel)
         {
-            Entity = entity ?? throw new ArgumentNullException(nameof(entity));
-        }
-    }
+            if (entity == null)
+                throw new ArgumentNullException(nameof(entity));
 
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <typeparam name="TKey"></typeparam>
-    public class EntityRef<TKey> : EntityRef, IEntityRef<TKey>, IRefPointer<TKey>
-    {
-        /// <inheritdoc/>
-        new public IMongoEntity<TKey> Entity => (IMongoEntity<TKey>)base.Entity;
-
-        /// <inheritdoc/>
-        TKey IEntityRef<TKey>.Key => (TKey)base.Key;
-
-
-        public EntityRef(
-            TKey key,
-            string collection,
-            string dblabel = null)
-            : base(key, collection, dblabel)
-        {
-        }
-
-        public EntityRef(
-            IMongoEntity<TKey> entity,
-            string collection,
-            string dblabel = null)
-            : base(entity, collection, dblabel)
-        {
+            RefInstance = entity;
         }
     }
 }

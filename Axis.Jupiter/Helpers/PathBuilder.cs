@@ -22,6 +22,7 @@ namespace Axis.Jupiter.Helpers
     internal class PropertyPath<TOrigin, TTo> : IPropertyPath<TOrigin, TTo>
     {
         public  Type OriginType { get; }
+
         public Type FromType { get; }
 
         public Type ToType { get; }

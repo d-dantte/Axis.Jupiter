@@ -1,8 +1,14 @@
-﻿namespace Axis.Jupiter.MongoDb.XModels
+﻿using MongoDB.Bson;
+
+namespace Axis.Jupiter.MongoDb.XModels
 {
     public interface IMongoEntity
     {
+        ObjectId _id { get; set; }
+
         object Key { get; set; }
+
+        bool IsPersisted { get; }
 
         int GetHashCode();
 

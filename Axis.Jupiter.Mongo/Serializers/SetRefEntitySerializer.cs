@@ -2,17 +2,15 @@
 using Axis.Jupiter.MongoDb.XModels;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Serializers;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace Axis.Jupiter.MongoDb.Serializers
 {
-    public class EntityRefSerializer<TEntity, TKey> : SerializerBase<EntityRef<TEntity, TKey>>, IBsonDocumentSerializer
-    where TEntity : IMongoEntity<TKey>
+    public class SetRefEntitySerializer<TRefInstance, TRefKey, TSourceKey> : SerializerBase<SetRefEntity<TRefInstance, TRefKey, TSourceKey>>, IBsonDocumentSerializer
+    where TRefInstance : IMongoEntity<TRefKey>
     {
         #region JsonSerializerSettings
         private static readonly JsonSerializerSettings _JsonSettings = new JsonSerializerSettings
@@ -21,40 +19,44 @@ namespace Axis.Jupiter.MongoDb.Serializers
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
             Converters = new List<JsonConverter>
             {
-                new EntityRefJsonConverter()
+                new SetRefEntityJsonConverter()
             },
         };
         #endregion
 
 
         public bool TryGetMemberSerializationInfo(string memberName, out BsonSerializationInfo serializationInfo)
-        { 
+        {
             serializationInfo = null;
 
             switch (memberName)
             {
-                case nameof(IEntityRef.DbLabel):
-                case nameof(IEntityRef.DbCollection):
+                case nameof(ISetRef.Key):
+                    serializationInfo = new BsonSerializationInfo(
+                        memberName,
+                        new GuidSerializer(),
+                        typeof(Guid));
+                    return true;
+
+                case nameof(ISetRef.RefKey):
+                    serializationInfo = new BsonSerializationInfo(
+                        memberName,
+                        BsonSerializer.LookupSerializer<TRefKey>(),
+                        typeof(TRefKey));
+                    return true;
+
+                case nameof(ISetRef.RefLabel):
                     serializationInfo = new BsonSerializationInfo(
                         memberName,
                         new StringSerializer(),
                         typeof(string));
                     return true;
 
-                case nameof(IRefIdentity.RefKey):
-                    var property = typeof(TEntity).GetProperty(memberName);
-                    var serializer = !property.IsDefined(typeof(BsonSerializerAttribute))
-                        ? BsonSerializer.LookupSerializer(property.PropertyType)
-                        : (IBsonSerializer)Activator.CreateInstance(
-                            property.GetCustomAttribute<BsonSerializerAttribute>().SerializerType);
-
-                    if (serializer == null)
-                        return false;
-
+                case nameof(ISetRef.SourceKey):
                     serializationInfo = new BsonSerializationInfo(
                         memberName,
-                        serializer,
-                        typeof(TKey));
+                        BsonSerializer.LookupSerializer<TSourceKey>(),
+                        typeof(TSourceKey));
                     return true;
 
                 default:
@@ -62,7 +64,7 @@ namespace Axis.Jupiter.MongoDb.Serializers
             }
         }
 
-        public override EntityRef<TEntity, TKey> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+        public override SetRefEntity<TRefInstance, TRefKey, TSourceKey> Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
         {
             var bsonDocSerializer = BsonSerializer.LookupSerializer(typeof(BsonDocument));
             var json = bsonDocSerializer
@@ -70,10 +72,10 @@ namespace Axis.Jupiter.MongoDb.Serializers
                 .ToBsonDocument()
                 .ToJson();
 
-            return JsonConvert.DeserializeObject<EntityRef<TEntity, TKey>>(json, _JsonSettings);
+            return JsonConvert.DeserializeObject<SetRefEntity<TRefInstance, TRefKey, TSourceKey>>(json, _JsonSettings);
         }
 
-        public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, EntityRef<TEntity, TKey> value)
+        public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, SetRefEntity<TRefInstance, TRefKey, TSourceKey> value)
         {
             var jsonDocument = JsonConvert.SerializeObject(value, _JsonSettings);
             var bsonDocument = BsonSerializer.Deserialize<BsonDocument>(jsonDocument);

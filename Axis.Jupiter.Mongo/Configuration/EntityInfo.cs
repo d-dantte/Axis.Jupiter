@@ -1,8 +1,11 @@
 ﻿using System;
-using Axis.Jupiter.MongoDb.Models;
-using Axis.Jupiter.MongoDb.Serializers;
-using MongoDB.Bson.Serialization;
+using System.Threading.Tasks;
+using Axis.Jupiter.MongoDb.Providers;
+using Axis.Jupiter.MongoDb.XModels;
 using MongoDB.Driver;
+using Newtonsoft.Json;
+
+using static Axis.Luna.Extensions.Common;
 
 namespace Axis.Jupiter.MongoDb
 {
@@ -16,10 +19,14 @@ namespace Axis.Jupiter.MongoDb
 
         string CollectionName { get; }
 
+        bool IsCollectionInitialized { get; }
+
         MongoDatabaseSettings DatabaseSettings { get; }
 
         #region Mongo Entity Options
         AggregateOptions QueryOptions { get; }
+
+        CreateIndexOptions KeyIndexOptions { get; }
 
         DeleteOptions DeleteOptions { get; }
 
@@ -29,20 +36,36 @@ namespace Axis.Jupiter.MongoDb
 
         UpdateOptions UpdateOptions { get; }
 
-        IBsonSerializer Serializer { get; }
+        JsonConverter Serializer { get; }
         #endregion
 
-        //expose equals and GetHashCode because instances of this are used as keys.
+        int GetHashCode();
+
+        bool Equals(object other);
+
+        Task InitializeCollection(MongoClient client);
     }
 
-    public abstract class EntityInfo<TEntity, TKey>: IEntityInfo
-    where TEntity: IMongoEntity<TKey>, new()
+
+    internal interface IEntityProviderElement
+    {
+        EntityInfoProvider Provider { set; }
+    }
+
+
+    public abstract class EntityInfo: IEntityInfo, IEntityProviderElement
     {
         private string _collectionName;
+        private EntityInfoProvider _infoProvider;
 
-        public Type EntityType => typeof(TEntity);
+        public Type EntityType { get; }
 
-        public Type KeyType => typeof(TKey);
+        public Type KeyType { get; }
+
+        public EntityInfoProvider Provider { get => _infoProvider; }
+
+        EntityInfoProvider IEntityProviderElement.Provider { set => _infoProvider = value; }
+
 
         public virtual string Database { get; protected set; }
 
@@ -54,6 +77,10 @@ namespace Axis.Jupiter.MongoDb
 
         public virtual MongoDatabaseSettings DatabaseSettings { get; protected set; }
 
+        public virtual MongoCollectionSettings CollectionSettings { get; protected set; }
+
+        public virtual CreateIndexOptions KeyIndexOptions { get; protected set; }
+
         public virtual AggregateOptions QueryOptions { get; protected set; }
 
         public virtual DeleteOptions DeleteOptions { get; protected set; }
@@ -64,8 +91,64 @@ namespace Axis.Jupiter.MongoDb
 
         public virtual UpdateOptions UpdateOptions { get; protected set; }
 
-        IBsonSerializer IEntityInfo.Serializer => Serializer;
+        public JsonConverter Serializer { get; protected set; }
 
-        public virtual EntitySerializer<TEntity, TKey> Serializer { get; protected set; } = new EntitySerializer<TEntity, TKey>();
+        public abstract bool IsCollectionInitialized { get; protected set; }
+
+        public override bool Equals(object obj)
+        {
+            return obj is EntityInfo info
+                && info.KeyType == KeyType
+                && info.EntityType == EntityType;
+        }
+
+        public override int GetHashCode() => ValueHash(EntityType, KeyType);
+
+        public abstract Task InitializeCollection(MongoClient client);
+
+        public EntityInfo(Type entityType, Type keyType)
+        {
+            EntityType = entityType;
+            KeyType = keyType;
+        }
+    }
+
+
+    public abstract class EntityInfo<TEntity, TKey> : EntityInfo
+    where TEntity: IMongoEntity<TKey>, new()
+    {
+        public override bool IsCollectionInitialized { get; protected set; } = false;
+
+        public EntityInfo()
+        : base(typeof(TEntity), typeof(TKey))
+        {
+
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is EntityInfo<TEntity, TKey> info
+                && info.KeyType == KeyType
+                && info.EntityType == EntityType;
+        }
+
+        public override int GetHashCode() => base.GetHashCode();        
+
+        public sealed override async Task InitializeCollection(MongoClient client)
+        {
+            if (!IsCollectionInitialized)
+            {
+                //may have to also create the collection if it needs to be created first...
+
+                await client
+                    .GetDatabase(Database)
+                    .GetCollection<TEntity>(CollectionName)
+                    .Indexes.CreateOneAsync(new CreateIndexModel<TEntity>(
+                        Builders<TEntity>.IndexKeys.Ascending(_ => _.Key),
+                        KeyIndexOptions ?? new CreateIndexOptions { Unique = true }));
+
+                IsCollectionInitialized = true;
+            }
+        }
     }
 }

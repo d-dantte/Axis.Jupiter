@@ -133,7 +133,7 @@ namespace Axis.Jupiter.MongoDb
                 return;
 
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
 
             await _client
@@ -145,7 +145,7 @@ namespace Axis.Jupiter.MongoDb
         private async Task AddRangeToCollection<Entity>(object[] entities)
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
 
             await _client
@@ -233,7 +233,7 @@ namespace Axis.Jupiter.MongoDb
         where Entity: IMongoEntity<TKey>
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
 
             var mongoEntity = (Entity)entity;
@@ -252,7 +252,7 @@ namespace Axis.Jupiter.MongoDb
         where Entity: IMongoEntity<TKey>
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
 
             var replaceModels = entities
@@ -292,7 +292,7 @@ namespace Axis.Jupiter.MongoDb
                 .ThrowIfNull($"No Transform Map found for model type: {typeof(Model).FullName}");
 
             var info = _infoProvider
-                .InfoFor(entityEntry.TypeMapper.EntityType)
+                .InfoForEntity(entityEntry.TypeMapper.EntityType)
                 .ThrowIfNull($"No Entity Info found for: {entityEntry.TypeMapper.EntityType.FullName}");
 
             //use fast-call to call the AddToCollection<Entity> method on the database object
@@ -346,7 +346,7 @@ namespace Axis.Jupiter.MongoDb
         where Entity: IMongoEntity<TKey>
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
 
             var filter = Builders<Entity>.Filter.Eq(e => e.Key, entity.Key);
@@ -361,7 +361,7 @@ namespace Axis.Jupiter.MongoDb
         where Entity: IMongoEntity<TKey>
         {
             var info = _infoProvider
-                .InfoFor<Entity>()
+                .InfoForEntity<Entity>()
                 .ThrowIfNull("No EntityInfo found for: " + typeof(Entity));
 
             var filter = entities
@@ -517,7 +517,7 @@ namespace Axis.Jupiter.MongoDb
         #region Helpers
 
         private IEntityInfo EntityInfo(IMongoEntity entity)
-        => entity == null? null : _infoProvider.InfoFor(entity.GetType());
+        => entity == null? null : _infoProvider.InfoForEntity(entity.GetType());
 
         private static bool IsNotNull<T>(T t) => t != null;
 
@@ -562,7 +562,7 @@ namespace Axis.Jupiter.MongoDb
     
         private static IEntityRef InitializeRef(IEntityRef @ref, EntityInfoProvider provider)
         {
-            var info = provider.InfoFor(@ref.EntityType);
+            var info = provider.InfoForEntity(@ref.EntityType);
             var mongoRef = @ref as IMongoDbEntityRef;
             mongoRef.DbLabel = info.Database;
             mongoRef.DbCollection = info.CollectionName;
@@ -572,7 +572,7 @@ namespace Axis.Jupiter.MongoDb
 
         private static IEntityCollectionRef InitializeRef(IEntityCollectionRef @ref, EntityInfoProvider provider)
         {
-            var info = provider.InfoFor(@ref.EntityType);
+            var info = provider.InfoForEntity(@ref.EntityType);
             var mongoRef = @ref as IMongoDbEntityRef;
             mongoRef.DbLabel = info.Database;
             mongoRef.DbCollection = info.CollectionName;
